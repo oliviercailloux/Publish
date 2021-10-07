@@ -17,21 +17,6 @@ import org.asciidoctor.OptionsBuilder;
  * TODO should sanitize input.
  */
 public class AsciidocWriter {
-  public static void main(String[] args) throws Exception {
-    final Asciidoctor adocConverter = Asciidoctor.Factory.create();
-
-    final String adoc = "= Title\nBlah\n\nBlih\n";
-    Files.writeString(Paths.get("out.adoc"), adoc);
-    final String adocHtml = adocConverter.convert(adoc, OptionsBuilder.options().backend("html"));
-    Files.writeString(Paths.get("out.html"), adocHtml);
-    final String adocXml =
-        adocConverter.convert(adoc, OptionsBuilder.options().backend("docbook").get());
-    Files.writeString(Paths.get("out.xml"), adocXml);
-    final String adocPdf = adocConverter.convert(adoc, OptionsBuilder.options().backend("pdf"));
-    Files.writeString(Paths.get("out.pdf"), adocPdf);
-
-  }
-
   public static String quote(String text) {
     if (text.isEmpty()) {
       return "";
