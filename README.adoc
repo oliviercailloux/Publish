@@ -1,0 +1,17 @@
+= Publish
+:groupId: io.github.oliviercailloux
+:artifactId: publish
+:repository: Publish
+
+image:https://github.com/oliviercailloux/{artifactId}/workflows/Maven%20CI/badge.svg["Maven CI", link="https://github.com/oliviercailloux/{repository}/actions"]
+image:https://maven-badges.herokuapp.com/maven-central/{groupId}/{artifactId}/badge.svg["Artifact on Maven Central", link="http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22{groupId}%22%20a%3A%22{artifactId}%22"]
+image:http://www.javadoc.io/badge/{groupId}/{artifactId}.svg["Javadocs", link="http://www.javadoc.io/doc/{groupId}/{artifactId}"]
+
+Various utilities related to publishing documents in various formats: Asciidoctor, DocBook and XML.
+
+This library focuses on code and API quality, not on performance. Open an issue if this creates a problem for some of your use cases.
+
+This project adheres to the https://github.com/classgraph/classgraph/blob/master/Zero-Bugs-Commitment.md[Zero Bugs Commitment].
+
+The API is _not_ stable. Write to me if you are interested in using this library and wonder about stabilizing its API, or want more example code.
+
