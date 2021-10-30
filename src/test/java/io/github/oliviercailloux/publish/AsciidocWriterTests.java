@@ -64,7 +64,9 @@ class AsciidocWriterTests {
     writer.verbatim(content);
     final String written = writer.getContent();
 
+    LOGGER.info("Creating.");
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
+      LOGGER.info("Created.");
       final String adocXml =
           adocConverter.convert(written, Options.builder().backend("docbook").build());
       LOGGER.debug("Xml: {}.", adocXml);
