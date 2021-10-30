@@ -72,13 +72,13 @@ public class DocBookHelper {
 
   /**
    * @return a fop factory
-   * @throws IOException iff an error occurs while reading the fop factory required resources
+   * @throws IOException iff an error occurs while reading the resources required by fop factory
    */
   private FopFactory lazyGetFopFactory() throws IOException {
     if (fopFactory == null) {
       final URL configUrl = DocBookHelper.class.getResource("fop-config.xml");
-      final URI hyphenatorUri =
-          Unchecker.URI_UNCHECKER.getUsing(() -> Hyphenator.class.getResource(".").toURI());
+      final URI hyphenatorUri = Unchecker.URI_UNCHECKER
+          .getUsing(() -> Hyphenator.class.getResource("en.hyp").toURI().resolve(""));
 
       try (InputStream configStream = configUrl.openStream()) {
         fopFactory = FopFactory.newInstance(hyphenatorUri, configStream);
