@@ -20,21 +20,6 @@ public class AsciidocWriter {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(AsciidocWriter.class);
 
-  public static void main(String[] args) {
-    final AsciidocWriter writer = new AsciidocWriter();
-    final String content = "a *starred* on\ntwo *`lines`*!";
-    writer.verbatim(content);
-    final String written = writer.getContent();
-
-    LOGGER.info("Creating.");
-    try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
-      LOGGER.info("Created.");
-      final String adocXml =
-          adocConverter.convert(written, Options.builder().backend("docbook").build());
-      LOGGER.debug("Xml: {}.", adocXml);
-    }
-  }
-
   public static String quote(String text) {
     if (text.isEmpty()) {
       return "";
