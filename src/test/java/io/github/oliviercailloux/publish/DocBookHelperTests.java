@@ -20,8 +20,8 @@ class DocBookHelperTests {
 
   @Test
   void testDocBookValid() throws Exception {
-    final StreamSource docBook =
-        new StreamSource(DocBookHelperTests.class.getResource("docbook howto.xml").toString());
+    final StreamSource docBook = new StreamSource(
+        DocBookHelperTests.class.getResource("docbook howto shortened.xml").toString());
     assertDoesNotThrow(() -> DocBookHelper.instance().verifyValid(docBook));
   }
 
@@ -58,9 +58,9 @@ class DocBookHelperTests {
   }
 
   /**
-   * Attempting to convert "docbook howto.xml" to PDF fails. This seems to be too complex for this
-   * process. Tables are not supported; and even without tables, it complains about some line
-   * overflow (including without my custom styling). I didn’t investigate further.
+   * Attempting to convert "docbook howto shortened.xml" to PDF fails. This seems to be too complex
+   * for this process. Tables are not supported; and even without tables, it complains about some
+   * line overflow (including without my custom styling). I didn’t investigate further.
    */
   @Test
   void testDocBooSimpleArticleToPdf() throws Exception {

@@ -79,6 +79,7 @@ public class DocBookHelper {
       final URL configUrl = DocBookHelper.class.getResource("fop-config.xml");
       final URI hyphenatorUri = Unchecker.URI_UNCHECKER
           .getUsing(() -> Hyphenator.class.getResource("en.hyp").toURI().resolve(""));
+      LOGGER.debug("Using hyphenator uri {}.", hyphenatorUri);
 
       try (InputStream configStream = configUrl.openStream()) {
         fopFactory = FopFactory.newInstance(hyphenatorUri, configStream);
