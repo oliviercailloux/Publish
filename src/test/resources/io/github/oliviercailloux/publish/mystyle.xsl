@@ -6,7 +6,7 @@
 		from the Debian docbook-xsl-ns package. The CDN file was offline on 13th 
 		of Sept 2021. -->
 	<xsl:import
-		href="https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl" />
+		href="https://cdn.docbook.org/release/xsl/1.79.2/fo/docbook.xsl" />
 	<xsl:param name="toc.section.depth" select="3" />
 	<xsl:param name="paper.type" select="'A4'" />
 	<xsl:param name="fop1.extensions" select="1" />
