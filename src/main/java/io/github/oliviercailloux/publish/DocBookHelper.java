@@ -5,7 +5,6 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
 import com.thaiopensource.relaxng.jaxp.XMLSyntaxSchemaFactory;
-import io.github.oliviercailloux.jaris.exceptions.Unchecker;
 import io.github.oliviercailloux.jaris.xml.XmlUtils;
 import io.github.oliviercailloux.jaris.xml.XmlUtils.SchemaHelper;
 import io.github.oliviercailloux.jaris.xml.XmlUtils.Transformer;
@@ -26,7 +25,6 @@ import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.Fop;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.events.model.EventSeverity;
-import org.apache.fop.hyphenation.Hyphenator;
 import org.apache.xmlgraphics.util.MimeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +35,9 @@ import org.xml.sax.SAXException;
  * The public API of this class favors {@link StreamSource} (from {@code javax.xml.transform}) to
  * {@link InputSource} (from {@code org.xml.sax}). The documentation of {@link XmlUtils} provides
  * some rationale.
+ * <p>
+ * See <a href="https://en.wikipedia.org/wiki/XSL_Formatting_Objects">XSL FO</a>.
+ * </p>
  */
 public class DocBookHelper {
   @SuppressWarnings("unused")
@@ -48,12 +49,10 @@ public class DocBookHelper {
 
   private XmlUtils.SchemaHelper validator;
   private Transformer transformer;
-  private FopFactory fopFactory;
 
   private DocBookHelper() {
     validator = null;
     transformer = null;
-    fopFactory = null;
   }
 
   private SchemaHelper lazyGetValidator() {
@@ -71,24 +70,23 @@ public class DocBookHelper {
   }
 
   /**
+   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @return a fop factory
    * @throws IOException iff an error occurs while reading the resources required by fop factory
    */
-  private FopFactory lazyGetFopFactory() throws IOException {
-    if (fopFactory == null) {
-      final URL configUrl = DocBookHelper.class.getResource("fop-config.xml");
-      final URI hyphenatorUri = Unchecker.URI_UNCHECKER
-          .getUsing(() -> Hyphenator.class.getResource("en.hyp").toURI().resolve(""));
-      LOGGER.debug("Using hyphenator uri {}.", hyphenatorUri);
+  private FopFactory getFopFactory(URI fopBaseUri) throws IOException {
+    checkArgument(fopBaseUri.isAbsolute());
+    final URL configUrl = DocBookHelper.class.getResource("fop-config.xml");
 
-      try (InputStream configStream = configUrl.openStream()) {
-        fopFactory = FopFactory.newInstance(hyphenatorUri, configStream);
-      } catch (SAXException e) {
-        throw new VerifyException(e);
-      }
-      verify(fopFactory.validateStrictly());
-      verify(fopFactory.validateUserConfigStrictly());
+    final FopFactory fopFactory;
+    try (InputStream configStream = configUrl.openStream()) {
+      fopFactory = FopFactory.newInstance(fopBaseUri, configStream);
+    } catch (SAXException e) {
+      throw new VerifyException(e);
     }
+    verify(fopFactory.validateStrictly());
+    verify(fopFactory.validateUserConfigStrictly());
+
     return fopFactory;
   }
 
@@ -110,11 +108,11 @@ public class DocBookHelper {
   /**
    * @param docBook not empty.
    * @param stylesheet if empty, a default stylesheet will be used.
-   * @return the fop as a string
+   * @return the XSL FO result as a string
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public String docBookToFop(Source docBook, Source stylesheet) throws XmlException {
+  public String docBookToFo(Source docBook, Source stylesheet) throws XmlException {
     checkArgument(!docBook.isEmpty());
     final Source styleSource;
     if (stylesheet.isEmpty()) {
@@ -126,13 +124,15 @@ public class DocBookHelper {
   }
 
   /**
-   * @param fo not empty
+   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
+   * @param fo the XSL FO source, not empty
    * @param pdfStream the stream where the resulting pdf will be output
    * @throws IOException iff an error occurs while reading the fop factory required resources
    * @throws XmlException iff an error occurs when transforming the document
    */
-  public void foToPdf(Source fo, OutputStream pdfStream) throws IOException, XmlException {
-    lazyGetFopFactory();
+  public void foToPdf(URI fopBaseUri, Source fo, OutputStream pdfStream)
+      throws IOException, XmlException {
+    final FopFactory fopFactory = getFopFactory(fopBaseUri);
 
     final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
     foUserAgent.getEventBroadcaster().addEventListener((e) -> {
@@ -154,6 +154,7 @@ public class DocBookHelper {
   }
 
   /**
+   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @param docBook not empty.
    * @param style if empty, a default style will be used.
    * @param pdfStream the stream where the resulting pdf will be output
@@ -161,12 +162,12 @@ public class DocBookHelper {
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public void docBookToPdf(Source docBook, Source style, OutputStream pdfStream)
+  public void docBookToPdf(URI fopBaseUri, Source docBook, Source style, OutputStream pdfStream)
       throws IOException, XmlException {
     LOGGER.info("Converting to Fop.");
-    final String fop = docBookToFop(docBook, style);
-    final StreamSource fopSource = XmlUtils.asSource(fop);
+    final String fo = docBookToFo(docBook, style);
+    final StreamSource foSource = XmlUtils.asSource(fo);
     LOGGER.info("Writing PDF.");
-    foToPdf(fopSource, pdfStream);
+    foToPdf(fopBaseUri, foSource, pdfStream);
   }
 }

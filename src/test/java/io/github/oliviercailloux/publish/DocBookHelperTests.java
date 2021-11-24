@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.common.base.VerifyException;
 import io.github.oliviercailloux.jaris.xml.XmlUtils.XmlException;
 import java.io.ByteArrayOutputStream;
+import java.nio.file.Path;
+import java.time.Instant;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,8 @@ class DocBookHelperTests {
     final StreamSource src =
         new StreamSource(DocBookHelperTests.class.getResource("article.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      DocBookHelper.instance().foToPdf(src, pdfStream);
+      DocBookHelper.instance().foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src,
+          pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -51,9 +54,10 @@ class DocBookHelperTests {
   @Test
   void testFoInvalidToPdf() throws Exception {
     final StreamSource src =
-        new StreamSource(DocBookHelperTests.class.getResource("wrong-fop.fo").toString());
+        new StreamSource(DocBookHelperTests.class.getResource("wrong.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      assertThrows(XmlException.class, () -> DocBookHelper.instance().foToPdf(src, pdfStream));
+      assertThrows(XmlException.class, () -> DocBookHelper.instance()
+          .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
     }
   }
 
@@ -63,7 +67,7 @@ class DocBookHelperTests {
    * line overflow (including without my custom styling). I didn’t investigate further.
    */
   @Test
-  void testDocBooSimpleArticleToPdf() throws Exception {
+  void testDocBookSimpleArticleToPdf() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
 
@@ -72,7 +76,8 @@ class DocBookHelperTests {
     final StreamSource myStyle =
         new StreamSource(DocBookHelper.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      helper.docBookToPdf(docBook, myStyle, pdfStream);
+      helper.docBookToPdf(Path.of("non-existent-" + Instant.now()).toUri(), docBook, myStyle,
+          pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {

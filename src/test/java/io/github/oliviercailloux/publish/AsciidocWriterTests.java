@@ -110,7 +110,7 @@ class AsciidocWriterTests {
           Options.builder().headerFooter(true).backend("docbook").build());
       final StreamSource docBookInput = XmlUtils.asSource(docBookFull);
       final String transformed =
-          DocBookHelper.instance().docBookToFop(docBookInput, XmlUtils.EMPTY_SOURCE);
+          DocBookHelper.instance().docBookToFo(docBookInput, XmlUtils.EMPTY_SOURCE);
       LOGGER.debug("Transformed: {}.", transformed);
     }
   }
