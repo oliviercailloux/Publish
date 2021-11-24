@@ -20,6 +20,18 @@
 			java.base/java.io=ALL-UNNAMED</argLine>
 	</properties>
 
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>3.3.1</version>
+				<configuration>
+					<failOnWarnings>false</failOnWarnings>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+	
 	<dependencies>
 		<dependency>
 			<groupId>io.github.oliviercailloux</groupId>
@@ -116,7 +128,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-
 		<dependency>
 			<groupId>com.sun.xml.bind</groupId>
 			<artifactId>jaxb-impl</artifactId>
