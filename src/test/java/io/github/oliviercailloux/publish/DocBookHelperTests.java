@@ -169,7 +169,7 @@ class DocBookHelperTests {
   }
 
   @Test
-  void testDocBookSimpleArticleToHtmlSaxon() throws Exception {
+  void testDocBookSimpleArticleToXhtmlSaxon() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     final XmlException xmlExc = assertThrows(XmlException.class,
@@ -186,7 +186,7 @@ class DocBookHelperTests {
    * “Can't make chunks with Saxonica's processor”.
    */
   @Test
-  void testDocBookSimpleArticleToHtmlXalan() throws Exception {
+  void testDocBookSimpleArticleToXhtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     /*
