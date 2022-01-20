@@ -7,7 +7,7 @@
 		<version>0.0.14</version>
 	</parent>
 	<artifactId>publish</artifactId>
-	<version>0.0.5-SNAPSHOT</version>
+	<version>0.0.5</version>
 
 	<properties>
 		<!-- Avoids warning when mvn test. -->
