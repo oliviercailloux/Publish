@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
-import io.github.oliviercailloux.jaris.xml.XmlUtils;
+import io.github.oliviercailloux.jaris.xml.DomHelper;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +27,7 @@ class AsciidocWriterTests {
 
   private String getSingleParagraph(String xml) {
     final Document adocXmlDoc =
-        XmlUtils.loadAndSave().asDocument(new StreamSource(new StringReader(xml)));
+        DomHelper.domHelper().asDocument(new StreamSource(new StringReader(xml)));
     final Element root = adocXmlDoc.getDocumentElement();
     assertEquals("simpara", root.getTagName());
     final NodeList childNodes = root.getChildNodes();
@@ -86,14 +86,14 @@ class AsciidocWriterTests {
       {
         final String docBookPartial =
             adocConverter.convert(written, Options.builder().backend("docbook").build());
-        assertThrows(VerifyException.class,
-            () -> DocBookHelper.instance().verifyValid(XmlUtils.asSource(docBookPartial)));
+        assertThrows(VerifyException.class, () -> DocBookHelper.usingDefaultFactory()
+            .verifyValid(new StreamSource(new StringReader(docBookPartial))));
       }
       {
         final String docBookFull = adocConverter.convert(written,
             Options.builder().headerFooter(true).backend("docbook").build());
-        assertDoesNotThrow(
-            () -> DocBookHelper.instance().verifyValid(XmlUtils.asSource(docBookFull)));
+        assertDoesNotThrow(() -> DocBookHelper.usingDefaultFactory()
+            .verifyValid(new StreamSource(new StringReader(docBookFull))));
       }
     }
   }
@@ -108,10 +108,10 @@ class AsciidocWriterTests {
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
       final String docBookFull = adocConverter.convert(written,
           Options.builder().headerFooter(true).backend("docbook").build());
-      final StreamSource docBookInput = XmlUtils.asSource(docBookFull);
+      final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
       final String transformed =
-          DocBookHelper.instance().docBookToFo(docBookInput, XmlUtils.EMPTY_SOURCE);
-      LOGGER.debug("Transformed: {}.", transformed);
+          DocBookHelper.usingDefaultFactory().docBookTo(docBookInput, DocBookHelper.TO_FO_STYLESHEET);
+      LOGGER.info("Transformed: {}.", transformed);
     }
   }
 

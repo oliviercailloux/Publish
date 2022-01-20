@@ -1,25 +1,27 @@
 package io.github.oliviercailloux.publish;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
 import com.thaiopensource.relaxng.jaxp.XMLSyntaxSchemaFactory;
-import io.github.oliviercailloux.jaris.xml.XmlUtils;
-import io.github.oliviercailloux.jaris.xml.XmlUtils.SchemaHelper;
-import io.github.oliviercailloux.jaris.xml.XmlUtils.Transformer;
-import io.github.oliviercailloux.jaris.xml.XmlUtils.XmlException;
+import io.github.oliviercailloux.jaris.xml.ConformityChecker;
+import io.github.oliviercailloux.jaris.xml.SchemaHelper;
+import io.github.oliviercailloux.jaris.xml.XmlException;
+import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.URI;
 import java.net.URL;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
-import net.sf.saxon.TransformerFactoryImpl;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.Fop;
@@ -40,32 +42,48 @@ import org.xml.sax.SAXException;
  * </p>
  */
 public class DocBookHelper {
+  public static final StreamSource TO_FO_STYLESHEET =
+      new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+  public static final StreamSource TO_HTML_STYLESHEET =
+      new StreamSource("https://cdn.docbook.org/release/xsl/current/html/docbook.xsl");
+  public static final StreamSource TO_XHTML_STYLESHEET =
+      new StreamSource("https://cdn.docbook.org/release/xsl/current/xhtml5/docbook.xsl");
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(DocBookHelper.class);
 
-  public static DocBookHelper instance() {
-    return new DocBookHelper();
+  public static DocBookHelper usingDefaultFactory() {
+    return new DocBookHelper(new org.apache.xalan.processor.TransformerFactoryImpl());
   }
 
-  private XmlUtils.SchemaHelper validator;
-  private Transformer transformer;
+  public static DocBookHelper usingFactory(TransformerFactory factory) {
+    return new DocBookHelper(factory);
+  }
 
-  private DocBookHelper() {
-    validator = null;
+  private final TransformerFactory factory;
+  private ConformityChecker conformityChecker;
+  private XmlTransformer transformer;
+
+  private DocBookHelper(TransformerFactory transformerFactory) {
+    factory = checkNotNull(transformerFactory);
+    conformityChecker = null;
     transformer = null;
   }
 
-  private SchemaHelper lazyGetValidator() {
-    final StreamSource schemaSource =
-        new StreamSource(DocBookHelper.class.getResource("docbook.rng").toString());
-    final SchemaFactory schemaFactory = new XMLSyntaxSchemaFactory();
-    validator = XmlUtils.schemaHelper(schemaFactory);
-    validator.setSchema(schemaSource);
-    return validator;
+  private ConformityChecker lazyGetConformityChecker() {
+    if (conformityChecker == null) {
+      final StreamSource schemaSource =
+          new StreamSource(DocBookHelper.class.getResource("docbook.rng").toString());
+      final SchemaFactory schemaFactory = new XMLSyntaxSchemaFactory();
+      final SchemaHelper schemaHelper = SchemaHelper.schemaHelper(schemaFactory);
+      conformityChecker = schemaHelper.getConformityChecker(schemaSource);
+    }
+    return conformityChecker;
   }
 
-  private Transformer lazyGetTransformer() {
-    transformer = XmlUtils.transformer(new TransformerFactoryImpl());
+  private XmlTransformer lazyGetTransformer() {
+    if (transformer == null) {
+      transformer = XmlTransformer.usingFactory(factory);
+    }
     return transformer;
   }
 
@@ -102,25 +120,33 @@ public class DocBookHelper {
    *         underlying org.xml.sax.XMLReader throws an IOException.
    */
   public void verifyValid(Source docBook) throws VerifyException, XmlException, IOException {
-    lazyGetValidator().verifyValid(docBook);
+    lazyGetConformityChecker().verifyValid(docBook);
   }
 
   /**
    * @param docBook not empty.
-   * @param stylesheet if empty, a default stylesheet will be used.
+   * @param stylesheet not empty
+   * @return the transformed content as a string
+   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
+   *         document.
+   */
+  public String docBookTo(Source docBook, Source stylesheet) {
+    checkArgument(!docBook.isEmpty());
+    checkArgument(!stylesheet.isEmpty());
+    return lazyGetTransformer().transform(docBook, stylesheet);
+  }
+
+  /**
+   * Uses a default stylesheet to transform the provided docBook into an FO format.
+   *
+   * @param docBook not empty.
    * @return the XSL FO result as a string
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public String docBookToFo(Source docBook, Source stylesheet) throws XmlException {
+  public String docBookToFo(Source docBook) throws XmlException {
     checkArgument(!docBook.isEmpty());
-    final Source styleSource;
-    if (stylesheet.isEmpty()) {
-      styleSource = new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
-    } else {
-      styleSource = stylesheet;
-    }
-    return lazyGetTransformer().transform(docBook, styleSource);
+    return docBookTo(docBook, TO_FO_STYLESHEET);
   }
 
   /**
@@ -156,17 +182,18 @@ public class DocBookHelper {
   /**
    * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @param docBook not empty.
-   * @param style if empty, a default style will be used.
+   * @param stylesheet the default {@link #TO_FO_STYLESHEET} or another suitable one.
    * @param pdfStream the stream where the resulting pdf will be output
    * @throws IOException iff an error occurs while reading the fop factory required resources
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public void docBookToPdf(URI fopBaseUri, Source docBook, Source style, OutputStream pdfStream)
-      throws IOException, XmlException {
+  public void docBookToPdf(URI fopBaseUri, Source docBook, Source stylesheet,
+      OutputStream pdfStream) throws IOException, XmlException {
+    checkArgument(!stylesheet.isEmpty());
     LOGGER.info("Converting to Fop.");
-    final String fo = docBookToFo(docBook, style);
-    final StreamSource foSource = XmlUtils.asSource(fo);
+    final String fo = docBookTo(docBook, stylesheet);
+    final StreamSource foSource = new StreamSource(new StringReader(fo));
     LOGGER.info("Writing PDF.");
     foToPdf(fopBaseUri, foSource, pdfStream);
   }

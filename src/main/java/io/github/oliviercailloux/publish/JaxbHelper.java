@@ -6,8 +6,8 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.github.oliviercailloux.jaris.exceptions.Unchecker;
-import io.github.oliviercailloux.jaris.xml.XmlUtils;
-import io.github.oliviercailloux.jaris.xml.XmlUtils.XmlException;
+import io.github.oliviercailloux.jaris.xml.SchemaHelper;
+import io.github.oliviercailloux.jaris.xml.XmlException;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
@@ -90,7 +90,7 @@ public class JaxbHelper {
       final InMemoryResolver schemasHolder = new InMemoryResolver();
       Unchecker.wrappingWith(VerifyException::new)
           .call(() -> context.generateSchema(schemasHolder));
-      schema = XmlUtils.schemaHelper().asSchema(schemasHolder.getResultAsSource());
+      schema = SchemaHelper.schemaHelper().asSchema(schemasHolder.getResultAsSource());
     }
     return schema;
   }
