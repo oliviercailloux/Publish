@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.MoreCollectors;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
@@ -166,21 +168,17 @@ class DocBookHelperTests {
     }
   }
 
-  /**
-   * With file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl and Saxon:
-   * “Can't make chunks with Saxonica's processor”.
-   */
   @Test
   void testDocBookSimpleArticleToHtmlSaxon() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
-    final String html = DocBookHelper.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-        .docBookTo(docBook, new StreamSource(
-            "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl"));
-    LOGGER.info("Resulting XHTML: {}.", html);
-    final Element documentElement = DomHelper.domHelper()
-        .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
-    LOGGER.info("To string: {}.", DomHelper.toDebugString(documentElement));
+    final XmlException xmlExc = assertThrows(XmlException.class,
+        () -> DocBookHelper.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
+            .docBookTo(docBook, DocBookHelper.TO_XHTML_STYLESHEET));
+    final String reason = xmlExc.getCause().getMessage();
+    assertEquals(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>Can't make chunks with Saxonica's processor.",
+        reason);
   }
 
   /**
@@ -191,13 +189,19 @@ class DocBookHelperTests {
   void testDocBookSimpleArticleToHtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
-    final String html =
+    /*
+     * new StreamSource(
+     * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
+     */
+    final String xhtml =
         DocBookHelper.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-            .docBookTo(docBook, new StreamSource(
-                "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl"));
-    LOGGER.info("Resulting XHTML: {}.", html);
+            .docBookTo(docBook, DocBookHelper.TO_XHTML_STYLESHEET);
+    LOGGER.debug("Resulting XHTML: {}.", xhtml);
     final Element documentElement = DomHelper.domHelper()
-        .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
-    LOGGER.info("To string: {}.", DomHelper.toDebugString(documentElement));
+        .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
+    final ImmutableList<Element> titleElements = DomHelper.toElements(
+        documentElement.getElementsByTagNameNS(DomHelper.XHTML_NS_URI.toString(), "title"));
+    final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
+    assertEquals("My Article", titleElement.getTextContent());
   }
 }
