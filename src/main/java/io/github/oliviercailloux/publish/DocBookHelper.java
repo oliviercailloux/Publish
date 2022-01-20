@@ -35,8 +35,8 @@ import org.xml.sax.SAXException;
 
 /**
  * The public API of this class favors {@link StreamSource} (from {@code javax.xml.transform}) to
- * {@link InputSource} (from {@code org.xml.sax}). The documentation of {@link XmlUtils} provides
- * some rationale.
+ * {@link InputSource} (from {@code org.xml.sax}). The documentation of
+ * {@link io.github.oliviercailloux.jaris.xml} provides some rationale.
  * <p>
  * See <a href="https://en.wikipedia.org/wiki/XSL_Formatting_Objects">XSL FO</a>.
  * </p>
@@ -124,8 +124,9 @@ public class DocBookHelper {
   }
 
   /**
-   * @param docBook not empty.
-   * @param stylesheet not empty
+   * @param docBook the source
+   * @param stylesheet for example, use {@link #TO_FO_STYLESHEET} to transform the provided source
+   *        into an FO format using a default DocBook to FO stylesheet.
    * @return the transformed content as a string
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
@@ -134,19 +135,6 @@ public class DocBookHelper {
     checkArgument(!docBook.isEmpty());
     checkArgument(!stylesheet.isEmpty());
     return lazyGetTransformer().transform(docBook, stylesheet);
-  }
-
-  /**
-   * Uses a default stylesheet to transform the provided docBook into an FO format.
-   *
-   * @param docBook not empty.
-   * @return the XSL FO result as a string
-   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
-   *         document.
-   */
-  public String docBookToFo(Source docBook) throws XmlException {
-    checkArgument(!docBook.isEmpty());
-    return docBookTo(docBook, TO_FO_STYLESHEET);
   }
 
   /**

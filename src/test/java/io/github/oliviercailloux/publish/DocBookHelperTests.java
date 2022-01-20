@@ -81,8 +81,8 @@ class DocBookHelperTests {
   /**
    * <p>
    * If there is no “en.hyp” file, a warning complains that “org.apache.fop.hyphenation.Hyphenator -
-   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: <projectRoot>/en.hyp”,
-   * but then there is a single “Hyphenation possible? true”, and the process succeeds.
+   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: projectroot/en.hyp”, but
+   * then there is a single “Hyphenation possible? true”, and the process succeeds.
    * </p>
    * <p>
    * If the “en.hyp” file is present, org.apache.fop.hyphenation.Hyphenator issues no warning, then
