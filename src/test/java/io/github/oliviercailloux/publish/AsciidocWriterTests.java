@@ -109,8 +109,8 @@ class AsciidocWriterTests {
       final String docBookFull = adocConverter.convert(written,
           Options.builder().headerFooter(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
-      final String transformed =
-          DocBookHelper.usingDefaultFactory().docBookTo(docBookInput, DocBookHelper.TO_FO_STYLESHEET);
+      final String transformed = DocBookHelper.usingDefaultFactory().docBookTo(docBookInput,
+          DocBookHelper.TO_FO_STYLESHEET);
       LOGGER.info("Transformed: {}.", transformed);
     }
   }

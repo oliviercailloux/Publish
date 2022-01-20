@@ -123,7 +123,7 @@ class DocBookHelperTests {
    * line overflow (including without my custom styling). I didn’t investigate further.
    * <p>
    * If there is no “en.hyp” file, a warning complains that “org.apache.fop.hyphenation.Hyphenator -
-   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: <projectRoot>/en.hyp”,
+   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: projectRoot/en.hyp”,
    * then multiple “Hyphenation possible? true”, then (much later) “Hyphenation possible? false”.
    * </p>
    * <p>
