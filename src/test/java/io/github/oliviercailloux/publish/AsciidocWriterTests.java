@@ -3,9 +3,11 @@ package io.github.oliviercailloux.publish;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import java.io.StringReader;
 import java.nio.file.Files;
@@ -109,9 +111,10 @@ class AsciidocWriterTests {
       final String docBookFull = adocConverter.convert(written,
           Options.builder().headerFooter(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
-      final String transformed = DocBookHelper.usingDefaultFactory().docBookTo(docBookInput,
-          DocBookHelper.TO_FO_STYLESHEET);
-      LOGGER.info("Transformed: {}.", transformed);
+      final String transformed = DocBookHelper.usingDefaultFactory()
+          .getDocBookToFoTransformer(ImmutableMap.of()).transform(docBookInput);
+      assertTrue(transformed.contains("page-height=\"11in\""));
+      assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));
     }
   }
 

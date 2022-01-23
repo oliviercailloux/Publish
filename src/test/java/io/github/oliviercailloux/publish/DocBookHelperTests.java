@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MoreCollectors;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
+import io.github.oliviercailloux.jaris.xml.XmlName;
 import java.io.ByteArrayOutputStream;
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -77,6 +79,44 @@ class DocBookHelperTests {
       assertThrows(XmlException.class,
           () -> DocBookHelper.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
               .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
+    }
+  }
+
+  @Test
+  void testDocBookSimpleArticleToFo() throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
+
+    final DocBookHelper helper =
+        DocBookHelper.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
+    helper.verifyValid(docBook);
+
+    {
+      final String fo = helper.getDocBookToFoTransformer(ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("page-height=\"11in\""));
+      assertTrue(fo.contains("page-width=\"8.5in\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+    }
+
+    {
+      final StreamSource myStyle =
+          new StreamSource(DocBookHelper.class.getResource("mystyle.xsl").toString());
+      final String fo = helper.getDocBookTransformer(myStyle, ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+    }
+
+    {
+      final String fo =
+          helper.getDocBookToFoTransformer(ImmutableMap.of(XmlName.localName("paper.type"), "A4"))
+              .transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
     }
   }
 
@@ -174,17 +214,13 @@ class DocBookHelperTests {
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     final XmlException xmlExc = assertThrows(XmlException.class,
         () -> DocBookHelper.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-            .docBookTo(docBook, DocBookHelper.TO_XHTML_STYLESHEET));
+            .getDocBookToXhtmlTransformer(ImmutableMap.of()).transform(docBook));
     final String reason = xmlExc.getCause().getMessage();
     assertEquals(
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>Can't make chunks with Saxonica's processor.",
         reason);
   }
 
-  /**
-   * With file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl and Saxon:
-   * “Can't make chunks with Saxonica's processor”.
-   */
   @Test
   void testDocBookSimpleArticleToXhtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
@@ -195,8 +231,32 @@ class DocBookHelperTests {
      */
     final String xhtml =
         DocBookHelper.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-            .docBookTo(docBook, DocBookHelper.TO_XHTML_STYLESHEET);
+            .getDocBookToXhtmlTransformer(ImmutableMap.of()).transform(docBook);
     LOGGER.debug("Resulting XHTML: {}.", xhtml);
+    assertTrue(xhtml.contains("docbook.css"));
+    final Element documentElement = DomHelper.domHelper()
+        .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
+    final ImmutableList<Element> titleElements = DomHelper.toElements(
+        documentElement.getElementsByTagNameNS(DomHelper.XHTML_NS_URI.toString(), "title"));
+    final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
+    assertEquals("My Article", titleElement.getTextContent());
+  }
+
+  @Test
+  void testDocBookSimpleArticleToXhtmlParameterized() throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
+    /*
+     * new StreamSource(
+     * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
+     */
+    final String xhtml = DocBookHelper.usingDefaultFactory()
+        .getDocBookToXhtmlTransformer(ImmutableMap.of(XmlName.localName("html.stylesheet"),
+            "blah.css", XmlName.localName("docbook.css.source"), ""))
+        .transform(docBook);
+    LOGGER.debug("Resulting XHTML: {}.", xhtml);
+    assertTrue(xhtml.contains("blah.css"));
+    assertTrue(!xhtml.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
         .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
     final ImmutableList<Element> titleElements = DomHelper.toElements(

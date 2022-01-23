@@ -5,10 +5,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ImmutableMap;
 import com.thaiopensource.relaxng.jaxp.XMLSyntaxSchemaFactory;
 import io.github.oliviercailloux.jaris.xml.ConformityChecker;
 import io.github.oliviercailloux.jaris.xml.SchemaHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
+import io.github.oliviercailloux.jaris.xml.XmlName;
+import io.github.oliviercailloux.jaris.xml.XmlToStringConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +19,7 @@ import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URL;
+import java.util.Map;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
@@ -124,17 +128,46 @@ public class DocBookHelper {
   }
 
   /**
-   * @param docBook the source
    * @param stylesheet for example, use {@link #TO_FO_STYLESHEET} to transform the provided source
    *        into an FO format using a default DocBook to FO stylesheet.
    * @return the transformed content as a string
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public String docBookTo(Source docBook, Source stylesheet) {
-    checkArgument(!docBook.isEmpty());
+  public XmlToStringConfiguredTransformer getDocBookTransformer(Source stylesheet) {
+    return getDocBookTransformer(stylesheet, ImmutableMap.of());
+  }
+
+  /**
+   * @param stylesheet for example, use {@link #TO_FO_STYLESHEET} to transform the provided source
+   *        into an FO format using a default DocBook to FO stylesheet.
+   * @return the transformed content as a string
+   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
+   *         document.
+   */
+  public XmlToStringConfiguredTransformer getDocBookTransformer(Source stylesheet,
+      Map<XmlName, String> parameters) {
     checkArgument(!stylesheet.isEmpty());
-    return lazyGetTransformer().transform(docBook, stylesheet);
+    checkNotNull(parameters);
+    return lazyGetTransformer().forSource(stylesheet, parameters);
+  }
+
+  public XmlToStringConfiguredTransformer
+      getDocBookToFoTransformer(Map<XmlName, String> parameters) {
+    checkNotNull(parameters);
+    return lazyGetTransformer().forSource(TO_FO_STYLESHEET, parameters);
+  }
+
+  public XmlToStringConfiguredTransformer
+      getDocBookToHtmlTransformer(Map<XmlName, String> parameters) {
+    checkNotNull(parameters);
+    return lazyGetTransformer().forSource(TO_HTML_STYLESHEET, parameters);
+  }
+
+  public XmlToStringConfiguredTransformer
+      getDocBookToXhtmlTransformer(Map<XmlName, String> parameters) {
+    checkNotNull(parameters);
+    return lazyGetTransformer().forSource(TO_XHTML_STYLESHEET, parameters);
   }
 
   /**
@@ -164,7 +197,7 @@ public class DocBookHelper {
       throw new IllegalStateException(e);
     }
 
-    lazyGetTransformer().transform(fo, res);
+    lazyGetTransformer().usingEmptySource().transform(fo, res);
   }
 
   /**
@@ -180,7 +213,7 @@ public class DocBookHelper {
       OutputStream pdfStream) throws IOException, XmlException {
     checkArgument(!stylesheet.isEmpty());
     LOGGER.info("Converting to Fop.");
-    final String fo = docBookTo(docBook, stylesheet);
+    final String fo = getDocBookTransformer(stylesheet).transform(docBook);
     final StreamSource foSource = new StreamSource(new StringReader(fo));
     LOGGER.info("Writing PDF.");
     foToPdf(fopBaseUri, foSource, pdfStream);
