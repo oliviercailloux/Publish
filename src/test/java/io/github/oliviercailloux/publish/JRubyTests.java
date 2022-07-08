@@ -9,6 +9,9 @@ public class JRubyTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(JRubyTests.class);
 
+  /**
+   * See https://github.com/jruby/jruby/issues/6925
+   */
   @Test
   void testJRuby() throws Exception {
     LOGGER.info("Starting ruby.");
