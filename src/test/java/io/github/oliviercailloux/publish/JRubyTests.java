@@ -13,7 +13,6 @@ public class JRubyTests {
 
   @Test
   void testJRuby() throws Exception {
-    Ruby.clearGlobalRuntime();
     LOGGER.info("Starting ruby.");
     System.setProperty("jruby.logger.class", EmptyLogger.class.getCanonicalName());
     Ruby runtime = Ruby.newInstance();
