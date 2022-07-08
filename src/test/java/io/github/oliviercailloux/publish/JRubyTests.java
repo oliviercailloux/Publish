@@ -1,7 +1,5 @@
 package io.github.oliviercailloux.publish;
 
-import com.google.common.collect.ImmutableList;
-import org.asciidoctor.jruby.AsciidoctorJRuby;
 import org.jruby.Ruby;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -15,11 +13,7 @@ public class JRubyTests {
   void testJRuby() throws Exception {
     LOGGER.info("Starting ruby.");
     System.setProperty("jruby.logger.class", EmptyLogger.class.getCanonicalName());
-    Ruby runtime = Ruby.newInstance();
+    Ruby.newInstance();
     LOGGER.info("Started ruby.");
-
-    System.out.println(runtime.getLoadService().getLoadPath());
-    final AsciidoctorJRuby a =
-        AsciidoctorJRuby.Factory.create(ImmutableList.of("nonexisting"), "nonexisting");
   }
 }
