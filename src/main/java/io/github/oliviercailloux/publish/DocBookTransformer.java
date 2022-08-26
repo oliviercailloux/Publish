@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
+import com.google.common.io.ByteSink;
 import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
@@ -50,6 +51,50 @@ public class DocBookTransformer {
       new StreamSource("https://cdn.docbook.org/release/xsl/current/html/docbook.xsl");
   public static final StreamSource TO_XHTML_STYLESHEET =
       new StreamSource("https://cdn.docbook.org/release/xsl/current/xhtml5/docbook.xsl");
+
+  public interface ToBytesTransformer {
+    public void toStream(Source source, OutputStream destination) throws IOException, XmlException;
+
+    public void toSink(Source source, ByteSink destination) throws IOException, XmlException;
+  }
+
+  private static class FoToBytesTransformer implements ToBytesTransformer {
+    private final FopFactory fopFactory;
+    private final XmlTransformer delegateTransformer;
+
+    private FoToBytesTransformer(FopFactory fopFactory, XmlTransformer delegateTransformer) {
+      this.fopFactory = fopFactory;
+      this.delegateTransformer = delegateTransformer;
+    }
+
+    @Override
+    public void toStream(Source source, OutputStream destination) throws XmlException {
+      final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
+      foUserAgent.getEventBroadcaster().addEventListener((e) -> {
+        /* https://xmlgraphics.apache.org/fop/2.4/events.html */
+        if (!e.getSeverity().equals(EventSeverity.INFO)) {
+          throw new XmlException(e.toString());
+        }
+      });
+
+      final Result res;
+      try {
+        final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
+        res = new SAXResult(fop.getDefaultHandler());
+      } catch (FOPException e) {
+        throw new IllegalStateException(e);
+      }
+
+      delegateTransformer.usingEmptySource().transform(source, res);
+    }
+
+    @Override
+    public void toSink(Source source, ByteSink destination) throws IOException, XmlException {
+      try (OutputStream destStream = destination.openStream()) {
+        toStream(source, destStream);
+      }
+    }
+  }
 
   public static DocBookTransformer usingDefaultFactory() {
     return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
@@ -133,23 +178,8 @@ public class DocBookTransformer {
       throws IOException, XmlException {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
 
-    final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-    foUserAgent.getEventBroadcaster().addEventListener((e) -> {
-      /* https://xmlgraphics.apache.org/fop/2.4/events.html */
-      if (!e.getSeverity().equals(EventSeverity.INFO)) {
-        throw new XmlException(e.toString());
-      }
-    });
-
-    final Result res;
-    try {
-      final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, pdfStream);
-      res = new SAXResult(fop.getDefaultHandler());
-    } catch (FOPException e) {
-      throw new IllegalStateException(e);
-    }
-
-    transformer.usingEmptySource().transform(fo, res);
+    final ToBytesTransformer fromFo = new FoToBytesTransformer(fopFactory, transformer);
+    fromFo.toStream(fo, pdfStream);
   }
 
   /**
