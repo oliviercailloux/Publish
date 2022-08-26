@@ -237,7 +237,7 @@ class DocBookHelperTests {
     final Element documentElement = DomHelper.domHelper()
         .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
     final ImmutableList<Element> titleElements = DomHelper.toElements(
-        documentElement.getElementsByTagNameNS(DomHelper.XHTML_NS_URI.toString(), "title"));
+        documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
   }
@@ -260,7 +260,7 @@ class DocBookHelperTests {
     final Element documentElement = DomHelper.domHelper()
         .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
     final ImmutableList<Element> titleElements = DomHelper.toElements(
-        documentElement.getElementsByTagNameNS(DomHelper.XHTML_NS_URI.toString(), "title"));
+        documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
   }

@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import javax.xml.transform.stream.StreamSource;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.Options;
+import org.jruby.util.log.SLF4JLogger;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,11 @@ import org.w3c.dom.NodeList;
 class AsciidocWriterTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(AsciidocWriterTests.class);
+
+  @BeforeAll
+  static void setJRubyLogger() {
+    System.setProperty("jruby.logger.class", SLF4JLogger.class.getCanonicalName());
+  }
 
   private String getSingleParagraph(String xml) {
     final Document adocXmlDoc =

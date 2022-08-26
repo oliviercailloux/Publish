@@ -9,9 +9,9 @@ import com.google.common.collect.ImmutableMap;
 import com.thaiopensource.relaxng.jaxp.XMLSyntaxSchemaFactory;
 import io.github.oliviercailloux.jaris.xml.ConformityChecker;
 import io.github.oliviercailloux.jaris.xml.SchemaHelper;
+import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
-import io.github.oliviercailloux.jaris.xml.XmlToStringConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,6 +25,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
@@ -79,7 +80,8 @@ public class DocBookHelper {
           new StreamSource(DocBookHelper.class.getResource("docbook.rng").toString());
       final SchemaFactory schemaFactory = new XMLSyntaxSchemaFactory();
       final SchemaHelper schemaHelper = SchemaHelper.schemaHelper(schemaFactory);
-      conformityChecker = schemaHelper.getConformityChecker(schemaSource);
+      final Schema schema = schemaHelper.asSchema(schemaSource);
+      conformityChecker = schemaHelper.conformityChecker(schema);
     }
     return conformityChecker;
   }
@@ -134,7 +136,7 @@ public class DocBookHelper {
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public XmlToStringConfiguredTransformer getDocBookTransformer(Source stylesheet) {
+  public XmlConfiguredTransformer getDocBookTransformer(Source stylesheet) {
     return getDocBookTransformer(stylesheet, ImmutableMap.of());
   }
 
@@ -145,27 +147,24 @@ public class DocBookHelper {
    * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
    *         document.
    */
-  public XmlToStringConfiguredTransformer getDocBookTransformer(Source stylesheet,
+  public XmlConfiguredTransformer getDocBookTransformer(Source stylesheet,
       Map<XmlName, String> parameters) {
     checkArgument(!stylesheet.isEmpty());
     checkNotNull(parameters);
     return lazyGetTransformer().forSource(stylesheet, parameters);
   }
 
-  public XmlToStringConfiguredTransformer
-      getDocBookToFoTransformer(Map<XmlName, String> parameters) {
+  public XmlConfiguredTransformer getDocBookToFoTransformer(Map<XmlName, String> parameters) {
     checkNotNull(parameters);
     return lazyGetTransformer().forSource(TO_FO_STYLESHEET, parameters);
   }
 
-  public XmlToStringConfiguredTransformer
-      getDocBookToHtmlTransformer(Map<XmlName, String> parameters) {
+  public XmlConfiguredTransformer getDocBookToHtmlTransformer(Map<XmlName, String> parameters) {
     checkNotNull(parameters);
     return lazyGetTransformer().forSource(TO_HTML_STYLESHEET, parameters);
   }
 
-  public XmlToStringConfiguredTransformer
-      getDocBookToXhtmlTransformer(Map<XmlName, String> parameters) {
+  public XmlConfiguredTransformer getDocBookToXhtmlTransformer(Map<XmlName, String> parameters) {
     checkNotNull(parameters);
     return lazyGetTransformer().forSource(TO_XHTML_STYLESHEET, parameters);
   }
