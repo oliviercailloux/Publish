@@ -12,23 +12,24 @@ import org.slf4j.LoggerFactory;
  * See https://github.com/jruby/jruby/issues/6925
  */
 public class JRubyTests {
-	@SuppressWarnings("unused")
-	private static final Logger LOGGER = LoggerFactory.getLogger(JRubyTests.class);
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(JRubyTests.class);
 
-	@Test
-	void testRedirectLoggingWorks() throws Exception {
-		LOGGER.info("Starting ruby.");
-		System.setProperty("jruby.logger.class", SLF4JLogger.class.getCanonicalName());
-		Ruby.newInstance();
-		LOGGER.info("Started ruby.");
-	}
+  @Test
+  void testRedirectLoggingWorks() throws Exception {
+    LOGGER.info("Starting ruby.");
+    System.setProperty("jruby.logger.class", SLF4JLogger.class.getCanonicalName());
+    Ruby.newInstance();
+    LOGGER.info("Started ruby.");
+  }
 
-	@Test
-	void testRedirectLoggingFails() throws Exception {
-		LOGGER.info("Starting ruby.");
-		final RubyInstanceConfig config = new RubyInstanceConfig();
-		config.setEnvironment(ImmutableMap.of("jruby.logger.class", SLF4JLogger.class.getCanonicalName()));
-		Ruby.newInstance(config);
-		LOGGER.info("Started ruby.");
-	}
+  @Test
+  void testRedirectLoggingFails() throws Exception {
+    LOGGER.info("Starting ruby.");
+    final RubyInstanceConfig config = new RubyInstanceConfig();
+    config.setEnvironment(
+        ImmutableMap.of("jruby.logger.class", SLF4JLogger.class.getCanonicalName()));
+    Ruby.newInstance(config);
+    LOGGER.info("Started ruby.");
+  }
 }
