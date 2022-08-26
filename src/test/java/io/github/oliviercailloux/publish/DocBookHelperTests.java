@@ -50,7 +50,9 @@ class DocBookHelperTests {
       /* Saxon: also succeeds. */
       // DocBookHelper.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
       DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-          .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream);
+          .usingFoStylesheet(ImmutableMap.of())
+          .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+          .toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -82,8 +84,8 @@ class DocBookHelperTests {
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
-    final DocBookTransformer helper = DocBookTransformer
-        .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final DocBookTransformer helper =
+        DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
 
     {
       final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
@@ -134,8 +136,8 @@ class DocBookHelperTests {
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
-    final DocBookTransformer helper = DocBookTransformer
-        .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final DocBookTransformer helper =
+        DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
     final StreamSource myStyle =
         new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
@@ -191,8 +193,8 @@ class DocBookHelperTests {
         DocBookHelperTests.class.getResource("docbook howto shortened.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
-    final DocBookTransformer helper = DocBookTransformer
-        .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final DocBookTransformer helper =
+        DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
     final StreamSource myStyle =
         new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
@@ -223,9 +225,9 @@ class DocBookHelperTests {
      * new StreamSource(
      * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
      */
-    final String xhtml = DocBookTransformer
-        .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-        .usingXhtmlStylesheet(ImmutableMap.of()).transform(docBook);
+    final String xhtml =
+        DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
+            .usingXhtmlStylesheet(ImmutableMap.of()).transform(docBook);
     LOGGER.debug("Resulting XHTML: {}.", xhtml);
     assertTrue(xhtml.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
@@ -245,8 +247,8 @@ class DocBookHelperTests {
      * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
      */
     final String xhtml = DocBookTransformer.usingDefaultFactory()
-        .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("html.stylesheet"),
-            "blah.css", XmlName.localName("docbook.css.source"), ""))
+        .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
+            XmlName.localName("docbook.css.source"), ""))
         .transform(docBook);
     LOGGER.debug("Resulting XHTML: {}.", xhtml);
     assertTrue(xhtml.contains("blah.css"));

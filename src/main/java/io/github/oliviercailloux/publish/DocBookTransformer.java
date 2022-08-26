@@ -1,37 +1,24 @@
 package io.github.oliviercailloux.publish;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Verify.verify;
 
-import com.google.common.base.VerifyException;
-import com.google.common.io.ByteSink;
 import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
+import io.github.oliviercailloux.publish.FoToPdfTransformer.ToBytesTransformer;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.net.URI;
-import java.net.URL;
 import java.util.Map;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
-import org.apache.fop.apps.FOPException;
-import org.apache.fop.apps.FOUserAgent;
-import org.apache.fop.apps.Fop;
-import org.apache.fop.apps.FopFactory;
-import org.apache.fop.events.model.EventSeverity;
-import org.apache.xmlgraphics.util.MimeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 /**
  * The public API of this class favors {@link StreamSource} (from {@code javax.xml.transform}) to
@@ -52,48 +39,11 @@ public class DocBookTransformer {
   public static final StreamSource TO_XHTML_STYLESHEET =
       new StreamSource("https://cdn.docbook.org/release/xsl/current/xhtml5/docbook.xsl");
 
-  public interface ToBytesTransformer {
-    public void toStream(Source source, OutputStream destination) throws IOException, XmlException;
-
-    public void toSink(Source source, ByteSink destination) throws IOException, XmlException;
-  }
-
-  private static class FoToBytesTransformer implements ToBytesTransformer {
-    private final FopFactory fopFactory;
-    private final XmlTransformer delegateTransformer;
-
-    private FoToBytesTransformer(FopFactory fopFactory, XmlTransformer delegateTransformer) {
-      this.fopFactory = fopFactory;
-      this.delegateTransformer = delegateTransformer;
-    }
-
-    @Override
-    public void toStream(Source source, OutputStream destination) throws XmlException {
-      final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-      foUserAgent.getEventBroadcaster().addEventListener((e) -> {
-        /* https://xmlgraphics.apache.org/fop/2.4/events.html */
-        if (!e.getSeverity().equals(EventSeverity.INFO)) {
-          throw new XmlException(e.toString());
-        }
-      });
-
-      final Result res;
-      try {
-        final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
-        res = new SAXResult(fop.getDefaultHandler());
-      } catch (FOPException e) {
-        throw new IllegalStateException(e);
-      }
-
-      delegateTransformer.usingEmptySource().transform(source, res);
-    }
-
-    @Override
-    public void toSink(Source source, ByteSink destination) throws IOException, XmlException {
-      try (OutputStream destStream = destination.openStream()) {
-        toStream(source, destStream);
-      }
-    }
+  public static interface DocBookToFoTransformer extends XmlConfiguredTransformer {
+    /**
+     * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
+     */
+    ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException, XmlException;
   }
 
   public static DocBookTransformer usingDefaultFactory() {
@@ -104,32 +54,13 @@ public class DocBookTransformer {
     return new DocBookTransformer(factory);
   }
 
+  private final TransformerFactory transformerFactory;
+
   private final XmlTransformer transformer;
 
   private DocBookTransformer(TransformerFactory transformerFactory) {
-    checkNotNull(transformerFactory);
+    this.transformerFactory = checkNotNull(transformerFactory);
     transformer = XmlTransformer.usingFactory(transformerFactory);
-  }
-
-  /**
-   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
-   * @return a fop factory
-   * @throws IOException iff an error occurs while reading the resources required by fop factory
-   */
-  private FopFactory getFopFactory(URI fopBaseUri) throws IOException {
-    checkArgument(fopBaseUri.isAbsolute());
-    final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
-
-    final FopFactory fopFactory;
-    try (InputStream configStream = configUrl.openStream()) {
-      fopFactory = FopFactory.newInstance(fopBaseUri, configStream);
-    } catch (SAXException e) {
-      throw new VerifyException(e);
-    }
-    verify(fopFactory.validateStrictly());
-    verify(fopFactory.validateUserConfigStrictly());
-
-    return fopFactory;
   }
 
   /**
@@ -155,8 +86,44 @@ public class DocBookTransformer {
     return transformer.forSource(stylesheet, parameters);
   }
 
-  public XmlConfiguredTransformer usingFoStylesheet(Map<XmlName, String> parameters) {
-    return transformer.forSource(TO_FO_STYLESHEET, parameters);
+  public DocBookToFoTransformer usingFoStylesheet(Map<XmlName, String> parameters) {
+    return usingFoStylesheet(TO_FO_STYLESHEET, parameters);
+  }
+
+  public DocBookToFoTransformer usingFoStylesheet(Source stylesheet,
+      Map<XmlName, String> parameters) {
+    final XmlConfiguredTransformer docBookToFoTransformer =
+        transformer.forSource(stylesheet, parameters);
+    return new DocBookToFoTransformer() {
+
+      @Override
+      public void transform(Source document, Result result) throws XmlException {
+        docBookToFoTransformer.transform(document, result);
+      }
+
+      @Override
+      public String transform(Source document) throws XmlException {
+        return docBookToFoTransformer.transform(document);
+      }
+
+      @Override
+      public ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri)
+          throws IOException, XmlException {
+        final ToBytesTransformer t =
+            FoToPdfTransformer.usingFactory(transformerFactory).usingBaseUri(fopBaseUri);
+        return new ToBytesTransformer() {
+          @Override
+          public void toStream(Source docBook, OutputStream pdfStream)
+              throws IOException, XmlException {
+            LOGGER.info("Converting to Fop.");
+            final String fo = docBookToFoTransformer.transform(docBook);
+            final StreamSource foSource = new StreamSource(new StringReader(fo));
+            LOGGER.info("Writing PDF.");
+            t.toStream(foSource, pdfStream);
+          }
+        };
+      }
+    };
   }
 
   public XmlConfiguredTransformer usingHtmlStylesheet(Map<XmlName, String> parameters) {
@@ -165,39 +132,5 @@ public class DocBookTransformer {
 
   public XmlConfiguredTransformer usingXhtmlStylesheet(Map<XmlName, String> parameters) {
     return transformer.forSource(TO_XHTML_STYLESHEET, parameters);
-  }
-
-  /**
-   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
-   * @param fo the XSL FO source, not empty
-   * @param pdfStream the stream where the resulting pdf will be output
-   * @throws IOException iff an error occurs while reading the fop factory required resources
-   * @throws XmlException iff an error occurs when transforming the document
-   */
-  public void foToPdf(URI fopBaseUri, Source fo, OutputStream pdfStream)
-      throws IOException, XmlException {
-    final FopFactory fopFactory = getFopFactory(fopBaseUri);
-
-    final ToBytesTransformer fromFo = new FoToBytesTransformer(fopFactory, transformer);
-    fromFo.toStream(fo, pdfStream);
-  }
-
-  /**
-   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
-   * @param docBook not empty.
-   * @param stylesheet the default {@link #TO_FO_STYLESHEET} or another suitable one.
-   * @param pdfStream the stream where the resulting pdf will be output
-   * @throws IOException iff an error occurs while reading the fop factory required resources
-   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
-   *         document.
-   */
-  public void docBookToPdf(URI fopBaseUri, Source docBook, Source stylesheet,
-      OutputStream pdfStream) throws IOException, XmlException {
-    checkArgument(!stylesheet.isEmpty());
-    LOGGER.info("Converting to Fop.");
-    final String fo = transformer.forSource(stylesheet).transform(docBook);
-    final StreamSource foSource = new StreamSource(new StringReader(fo));
-    LOGGER.info("Writing PDF.");
-    foToPdf(fopBaseUri, foSource, pdfStream);
   }
 }
