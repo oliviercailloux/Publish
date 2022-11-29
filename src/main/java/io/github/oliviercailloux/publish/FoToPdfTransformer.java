@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
-import com.google.common.io.ByteSink;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.IOException;
@@ -26,17 +25,6 @@ import org.apache.xmlgraphics.util.MimeConstants;
 import org.xml.sax.SAXException;
 
 public class FoToPdfTransformer {
-
-  public interface ToBytesTransformer {
-    public void toStream(Source source, OutputStream destination) throws IOException, XmlException;
-
-    public default void toSink(Source source, ByteSink destination)
-        throws IOException, XmlException {
-      try (OutputStream destStream = destination.openStream()) {
-        toStream(source, destStream);
-      }
-    }
-  }
 
   private static class FoToBytesTransformer implements ToBytesTransformer {
     private final FopFactory fopFactory;
@@ -107,13 +95,10 @@ public class FoToPdfTransformer {
 
   /**
    * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
-   * @param fo the XSL FO source, not empty
-   * @param pdfStream the stream where the resulting pdf will be output
-   * @return
+   * @return a transformer
    * @throws IOException iff an error occurs while reading the fop factory required resources
-   * @throws XmlException iff an error occurs when transforming the document
    */
-  public ToBytesTransformer usingBaseUri(URI fopBaseUri) throws IOException, XmlException {
+  public ToBytesTransformer usingBaseUri(URI fopBaseUri) throws IOException {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
 
     return new FoToBytesTransformer(fopFactory, transformer);

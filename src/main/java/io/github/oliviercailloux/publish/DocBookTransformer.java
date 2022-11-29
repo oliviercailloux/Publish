@@ -6,7 +6,6 @@ import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
-import io.github.oliviercailloux.publish.FoToPdfTransformer.ToBytesTransformer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
@@ -43,7 +42,7 @@ public class DocBookTransformer {
     /**
      * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
      */
-    ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException, XmlException;
+    ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException;
   }
 
   public static DocBookTransformer usingDefaultFactory() {
@@ -107,8 +106,7 @@ public class DocBookTransformer {
       }
 
       @Override
-      public ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri)
-          throws IOException, XmlException {
+      public ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException {
         final ToBytesTransformer t =
             FoToPdfTransformer.usingFactory(transformerFactory).usingBaseUri(fopBaseUri);
         return new ToBytesTransformer() {
