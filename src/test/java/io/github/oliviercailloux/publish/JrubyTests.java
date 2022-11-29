@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 /**
  * See https://github.com/jruby/jruby/issues/6925
  */
-public class JRubyTests {
+public class JrubyTests {
   @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(JRubyTests.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JrubyTests.class);
 
   @Test
   void testRedirectLoggingWorks() throws Exception {
