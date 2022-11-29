@@ -47,12 +47,19 @@ class DocBookHelperTests {
     final StreamSource src =
         new StreamSource(DocBookHelperTests.class.getResource("article.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      /* Saxon: also succeeds. */
-      // DocBookHelper.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-      DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-          .usingFoStylesheet(ImmutableMap.of())
-          .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
-          .toStream(src, pdfStream);
+      FoToPdfTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
+          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      final byte[] pdf = pdfStream.toByteArray();
+      assertTrue(pdf.length >= 10);
+      try (PDDocument document = PDDocument.load(pdf)) {
+        final int numberOfPages = document.getNumberOfPages();
+        assertEquals(1, numberOfPages);
+        assertEquals("My Article", document.getDocumentInformation().getTitle());
+      }
+    }
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      FoToPdfTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
+          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -70,11 +77,18 @@ class DocBookHelperTests {
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
       assertThrows(XmlException.class,
           () -> DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-              .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
+              .usingFoStylesheet(ImmutableMap.of())
+              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+              .toStream(src, pdfStream)
+      // .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream)
+      );
       assertThrows(XmlException.class,
           () -> DocBookTransformer
               .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-              .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
+              .usingFoStylesheet(ImmutableMap.of())
+              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+              .toStream(src, pdfStream));
+      // .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
     }
   }
 
@@ -141,8 +155,9 @@ class DocBookHelperTests {
     final StreamSource myStyle =
         new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      helper.docBookToPdf(Path.of("non-existent-" + Instant.now()).toUri(), docBook, myStyle,
-          pdfStream);
+      helper.usingFoStylesheet(myStyle, ImmutableMap.of())
+          .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+          .toStream(docBook, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -179,8 +194,9 @@ class DocBookHelperTests {
         new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
       assertThrows(XmlException.class,
-          () -> helper.docBookToPdf(Path.of("non-existent-" + Instant.now()).toUri(), docBook,
-              myStyle, pdfStream));
+          () -> helper.usingFoStylesheet(myStyle, ImmutableMap.of())
+              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+              .toStream(docBook, pdfStream));
     }
   }
 
@@ -199,8 +215,9 @@ class DocBookHelperTests {
         new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
       assertThrows(XmlException.class,
-          () -> helper.docBookToPdf(Path.of("non-existent-" + Instant.now()).toUri(), docBook,
-              myStyle, pdfStream));
+          () -> helper.usingFoStylesheet(myStyle, ImmutableMap.of())
+              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+              .toStream(docBook, pdfStream));
     }
   }
 
