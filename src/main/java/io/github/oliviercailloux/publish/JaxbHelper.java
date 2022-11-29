@@ -87,10 +87,17 @@ public class JaxbHelper {
 
   private Schema lazyGetSchema() {
     if (schema != null) {
-      final InMemoryResolver schemasHolder = new InMemoryResolver();
-      Unchecker.wrappingWith(VerifyException::new)
-          .call(() -> context.generateSchema(schemasHolder));
-      schema = SchemaHelper.schemaHelper().asSchema(schemasHolder.getResultAsSource());
+      final DOMSource generated;
+      {
+        final InMemoryResolver schemasHolder = new InMemoryResolver();
+        try {
+          context.generateSchema(schemasHolder);
+        } catch (IOException e) {
+          throw new VerifyException(e);
+        }
+        generated = schemasHolder.getResultAsSource();
+      }
+      schema = SchemaHelper.schemaHelper().asSchema(generated);
     }
     return schema;
   }
