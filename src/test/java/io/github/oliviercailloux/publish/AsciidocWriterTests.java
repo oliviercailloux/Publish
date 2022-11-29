@@ -30,7 +30,7 @@ class AsciidocWriterTests {
   private static final Logger LOGGER = LoggerFactory.getLogger(AsciidocWriterTests.class);
 
   @BeforeAll
-  static void setJRubyLogger() {
+  static void setJrubyLogger() {
     System.setProperty("jruby.logger.class", SLF4JLogger.class.getCanonicalName());
   }
 
