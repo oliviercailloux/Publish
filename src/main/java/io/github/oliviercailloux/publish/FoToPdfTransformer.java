@@ -57,10 +57,6 @@ public class FoToPdfTransformer {
     }
   }
 
-  public static FoToPdfTransformer usingDefaultFactory() {
-    return new FoToPdfTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
-  }
-
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {
     return new FoToPdfTransformer(factory);
   }

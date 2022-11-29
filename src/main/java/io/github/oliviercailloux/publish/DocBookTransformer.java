@@ -45,6 +45,55 @@ public class DocBookTransformer {
     ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException;
   }
 
+  private static class DocBookToFoTransformerFromXmlTransformer implements DocBookToFoTransformer {
+    private final TransformerFactory transformerFactory;
+    private final XmlConfiguredTransformer docBookToFoTransformer;
+
+    private DocBookToFoTransformerFromXmlTransformer(TransformerFactory transformerFactory,
+        XmlConfiguredTransformer docBookToFoTransformer) {
+      this.transformerFactory = checkNotNull(transformerFactory);
+      this.docBookToFoTransformer = checkNotNull(docBookToFoTransformer);
+    }
+
+    @Override
+    public void transform(Source document, Result result) throws XmlException {
+      docBookToFoTransformer.transform(document, result);
+    }
+
+    @Override
+    public String transform(Source document) throws XmlException {
+      return docBookToFoTransformer.transform(document);
+    }
+
+    @Override
+    public ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException {
+      final ToBytesTransformer foToPdfTransformer =
+          FoToPdfTransformer.usingFactory(transformerFactory).usingBaseUri(fopBaseUri);
+      return new ToBytesFromXmlTransformer(docBookToFoTransformer, foToPdfTransformer);
+    }
+  }
+
+  private static class ToBytesFromXmlTransformer implements ToBytesTransformer {
+    private final XmlConfiguredTransformer docBookToFoTransformer;
+
+    private final ToBytesTransformer foToPdfTransformer;
+
+    private ToBytesFromXmlTransformer(XmlConfiguredTransformer docBookToFoTransformer,
+        ToBytesTransformer foToPdfTransformer) {
+      this.docBookToFoTransformer = checkNotNull(docBookToFoTransformer);
+      this.foToPdfTransformer = checkNotNull(foToPdfTransformer);
+    }
+
+    @Override
+    public void toStream(Source docBook, OutputStream pdfStream) throws IOException, XmlException {
+      LOGGER.info("Converting to Fop.");
+      final String fo = docBookToFoTransformer.transform(docBook);
+      final StreamSource foSource = new StreamSource(new StringReader(fo));
+      LOGGER.info("Writing PDF.");
+      foToPdfTransformer.toStream(foSource, pdfStream);
+    }
+  }
+
   public static DocBookTransformer usingDefaultFactory() {
     return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
   }
@@ -63,22 +112,21 @@ public class DocBookTransformer {
   }
 
   /**
-   * @param stylesheet for example, use {@link #TO_FO_STYLESHEET} to transform the provided source
-   *        into an FO format using a default DocBook to FO stylesheet.
-   * @return the transformed content as a string
-   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
-   *         document.
+   * @param stylesheet for example, use {@link #TO_XHTML_STYLESHEET} to use a default DocBook to
+   *        XHTML stylesheet.
+   * @return a transformer
+   * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
-  public XmlConfiguredTransformer usingStylesheet(Source stylesheet) {
+  public XmlConfiguredTransformer usingStylesheet(Source stylesheet) throws XmlException {
     return transformer.forSource(stylesheet);
   }
 
   /**
-   * @param stylesheet for example, use {@link #TO_FO_STYLESHEET} to transform the provided source
-   *        into an FO format using a default DocBook to FO stylesheet.
-   * @return the transformed content as a string
-   * @throws XmlException iff an error occurs when parsing the stylesheet or when transforming the
-   *         document.
+   * @param stylesheet for example, use {@link #TO_XHTML_STYLESHEET} to use a default DocBook to
+   *        XHTML stylesheet
+   * @param parameters to use together with the stylesheet
+   * @return a transformer
+   * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
   public XmlConfiguredTransformer usingStylesheet(Source stylesheet,
       Map<XmlName, String> parameters) {
@@ -90,38 +138,10 @@ public class DocBookTransformer {
   }
 
   public DocBookToFoTransformer usingFoStylesheet(Source stylesheet,
-      Map<XmlName, String> parameters) {
+      Map<XmlName, String> parameters) throws XmlException {
     final XmlConfiguredTransformer docBookToFoTransformer =
         transformer.forSource(stylesheet, parameters);
-    return new DocBookToFoTransformer() {
-
-      @Override
-      public void transform(Source document, Result result) throws XmlException {
-        docBookToFoTransformer.transform(document, result);
-      }
-
-      @Override
-      public String transform(Source document) throws XmlException {
-        return docBookToFoTransformer.transform(document);
-      }
-
-      @Override
-      public ToBytesTransformer asDocBookToPdfTransformer(URI fopBaseUri) throws IOException {
-        final ToBytesTransformer t =
-            FoToPdfTransformer.usingFactory(transformerFactory).usingBaseUri(fopBaseUri);
-        return new ToBytesTransformer() {
-          @Override
-          public void toStream(Source docBook, OutputStream pdfStream)
-              throws IOException, XmlException {
-            LOGGER.info("Converting to Fop.");
-            final String fo = docBookToFoTransformer.transform(docBook);
-            final StreamSource foSource = new StreamSource(new StringReader(fo));
-            LOGGER.info("Writing PDF.");
-            t.toStream(foSource, pdfStream);
-          }
-        };
-      }
-    };
+    return new DocBookToFoTransformerFromXmlTransformer(transformerFactory, docBookToFoTransformer);
   }
 
   public XmlConfiguredTransformer usingHtmlStylesheet(Map<XmlName, String> parameters) {
