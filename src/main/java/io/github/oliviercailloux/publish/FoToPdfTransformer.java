@@ -45,8 +45,7 @@ public class FoToPdfTransformer {
       foUserAgent.getEventBroadcaster().addEventListener((e) -> {
         /* https://xmlgraphics.apache.org/fop/2.4/events.html */
         if (!e.getSeverity().equals(EventSeverity.INFO)) {
-          if (e.getParam("fnfe") != null) {
-            final FileNotFoundException fnfe = (FileNotFoundException) e.getParam("fnfe");
+          if (e.getParam("fnfe") instanceof FileNotFoundException fnfe) {
             throw new XmlException(fnfe);
           }
           throw new XmlException(e.toString());
@@ -66,7 +65,9 @@ public class FoToPdfTransformer {
   }
 
   public static FoToPdfTransformer usingDefaultFactory() {
+    /* FIXME decide on the default. */
     final TransformerFactory factory = TransformerFactory.newDefaultInstance();
+    // return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
     return new FoToPdfTransformer(factory);
   }
 

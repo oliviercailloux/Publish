@@ -81,16 +81,13 @@ class DocBookHelperTests {
           () -> DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
               .usingFoStylesheet(ImmutableMap.of())
               .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
-              .toStream(src, pdfStream)
-      // .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream)
-      );
+              .toStream(src, pdfStream));
       assertThrows(XmlException.class,
           () -> DocBookTransformer
               .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
               .usingFoStylesheet(ImmutableMap.of())
               .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
               .toStream(src, pdfStream));
-      // .foToPdf(Path.of("non-existent-" + Instant.now()).toUri(), src, pdfStream));
     }
   }
 
