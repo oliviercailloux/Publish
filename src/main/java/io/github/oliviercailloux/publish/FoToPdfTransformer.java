@@ -7,6 +7,7 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.base.VerifyException;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -38,9 +39,16 @@ public class FoToPdfTransformer {
     @Override
     public void toStream(Source source, OutputStream destination) throws XmlException {
       final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
+      // foUserAgent.getEventBroadcaster().addEventListener(new
+      // LoggingEventListener(LogFactory.getLog(FOUserAgent.class)));
+      // foUserAgent.getEventBroadcaster().addEventListener(new LoggingEventListener());
       foUserAgent.getEventBroadcaster().addEventListener((e) -> {
         /* https://xmlgraphics.apache.org/fop/2.4/events.html */
         if (!e.getSeverity().equals(EventSeverity.INFO)) {
+          if (e.getParam("fnfe") != null) {
+            final FileNotFoundException fnfe = (FileNotFoundException) e.getParam("fnfe");
+            throw new XmlException(fnfe);
+          }
           throw new XmlException(e.toString());
         }
       });
@@ -58,7 +66,8 @@ public class FoToPdfTransformer {
   }
 
   public static FoToPdfTransformer usingDefaultFactory() {
-    return new FoToPdfTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final TransformerFactory factory = TransformerFactory.newDefaultInstance();
+    return new FoToPdfTransformer(factory);
   }
 
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {

@@ -13,11 +13,13 @@ import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -168,6 +170,50 @@ class DocBookHelperTests {
     }
   }
 
+  @Test
+  @Disabled("Produces a warning for overly long line")
+  void testDocBookSimpleArticleWithImageToPdf() throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookHelperTests.class.getResource("docbook simple article with image.xml").toString());
+    DocBookConformityChecker.usingDefaults().verifyValid(docBook);
+
+    final DocBookTransformer helper =
+        DocBookTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final StreamSource myStyle =
+        new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      helper.usingFoStylesheet(myStyle, ImmutableMap.of())
+          .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
+          .toStream(docBook, pdfStream);
+      final byte[] pdf = pdfStream.toByteArray();
+      assertTrue(pdf.length >= 10);
+      try (PDDocument document = PDDocument.load(pdf)) {
+        final int numberOfPages = document.getNumberOfPages();
+        assertEquals(1, numberOfPages);
+        assertEquals("My Article", document.getDocumentInformation().getTitle());
+      }
+    }
+  }
+
+  @Test
+  void testDocBookMissingImageToPdf() throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookHelperTests.class.getResource("docbook simple article wrong image.xml").toString());
+    DocBookConformityChecker.usingDefaults().verifyValid(docBook);
+
+    final DocBookTransformer helper =
+        DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl());
+    final StreamSource myStyle =
+        new StreamSource(DocBookTransformer.class.getResource("mystyle.xsl").toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      final ToBytesTransformer transformer = helper.usingFoStylesheet(myStyle, ImmutableMap.of())
+          .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri());
+      final XmlException exc =
+          assertThrows(XmlException.class, () -> transformer.toStream(docBook, pdfStream));
+      assertEquals(FileNotFoundException.class, exc.getCause().getClass());
+    }
+  }
+
   /**
    * Attempting to convert "docbook howto shortened.xml" to PDF fails. This seems to be too complex
    * for this process. Tables are not supported; and even without tables, it complains about some
@@ -256,14 +302,20 @@ class DocBookHelperTests {
   }
 
   @Test
-  void testDocBookSimpleArticleToXhtmlParameterized() throws Exception {
+  void testDocBookSimpleArticleToXhtmlDefaultFactoryThrows() throws Exception {
+    final DocBookTransformer transformer = DocBookTransformer.usingDefaultFactory();
+    assertThrows(XmlException.class, () -> transformer.usingXhtmlStylesheet(ImmutableMap.of()));
+  }
+
+  @Test
+  void testDocBookSimpleArticleToXhtmlSaxonParameterized() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
     /*
      * new StreamSource(
      * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
      */
-    final String xhtml = DocBookTransformer.usingDefaultFactory()
+    final String xhtml = DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
         .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
             XmlName.localName("docbook.css.source"), ""))
         .transform(docBook);

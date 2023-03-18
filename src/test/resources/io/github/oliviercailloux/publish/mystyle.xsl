@@ -17,7 +17,7 @@
 	<xsl:template name="article.titlepage.before.recto">
 		<fo:block text-align="right" space-after="1cm">
 			<fo:external-graphic
-				src="https://github.com/Dauphine-MIDO/M1-alternance/raw/master/DauphineBleu.png"
+				src="https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"
 				width="35%" content-width="scale-to-fit" />
 		</fo:block>
 	</xsl:template>

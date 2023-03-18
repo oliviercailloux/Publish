@@ -95,7 +95,9 @@ public class DocBookTransformer {
   }
 
   public static DocBookTransformer usingDefaultFactory() {
-    return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
+    final TransformerFactory factory = TransformerFactory.newDefaultInstance();
+    // return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
+    return new DocBookTransformer(factory);
   }
 
   public static DocBookTransformer usingFactory(TransformerFactory factory) {

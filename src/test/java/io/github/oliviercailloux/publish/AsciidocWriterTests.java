@@ -118,8 +118,9 @@ class AsciidocWriterTests {
       final String docBookFull = adocConverter.convert(written,
           Options.builder().headerFooter(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
-      final String transformed = DocBookTransformer.usingDefaultFactory()
-          .usingFoStylesheet(ImmutableMap.of()).transform(docBookInput);
+      final String transformed =
+          DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
+              .usingFoStylesheet(ImmutableMap.of()).transform(docBookInput);
       assertTrue(transformed.contains("page-height=\"11in\""));
       assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));
     }
