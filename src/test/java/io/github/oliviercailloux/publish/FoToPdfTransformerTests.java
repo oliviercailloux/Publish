@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.TransformerException;
@@ -141,7 +140,6 @@ public class FoToPdfTransformerTests {
       FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
-      Files.write(Path.of("out.pdf"), pdf);
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
         final int numberOfPages = document.getNumberOfPages();
