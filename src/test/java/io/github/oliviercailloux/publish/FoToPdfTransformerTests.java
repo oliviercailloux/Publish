@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.TransformerException;
@@ -20,7 +19,7 @@ import org.junitpioneer.jupiter.cartesian.CartesianTest;
 public class FoToPdfTransformerTests {
 
   @CartesianTest
-  void testSimpleArticleToPdf(
+  void testSimpleArticleRaw(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
@@ -29,8 +28,8 @@ public class FoToPdfTransformerTests {
       FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
-      Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-          pdf);
+      // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
+      // pdf);
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
         final int numberOfPages = document.getNumberOfPages();
@@ -40,16 +39,16 @@ public class FoToPdfTransformerTests {
     }
   }
 
-  @ParameterizedTest
-  @EnumSource
-  void testSimpleArticleUsingXalanToPdf(KnownFactory knownFactory) throws Exception {
-    final StreamSource src = new StreamSource(
-        DocBookTransformerTests.class.getResource("Simple article using XALAN.fo").toString());
+  @CartesianTest
+  void testSimpleArticleStyled(
+      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
+      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final StreamSource src = new StreamSource(DocBookTransformerTests.class
+        .getResource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)).toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(knownFactory.factory())
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
-      // Files.write(Path.of("out.pdf"), pdf);
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
         final int numberOfPages = document.getNumberOfPages();

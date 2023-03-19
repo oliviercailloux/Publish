@@ -142,13 +142,27 @@ class DocBookTransformerTests {
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
 
-    final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
-    assertTrue(fo.contains("Sample"));
-    assertTrue(
-        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-        .getResource("Article with image using %s.fo".formatted(factory)).toURI()));
-    assertEquals(expected, fo);
+    {
+      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("Sample"));
+      assertTrue(
+          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Article with image using %s raw.fo".formatted(factory)).toURI()));
+      assertEquals(expected, fo);
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(
+          DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("Sample"));
+      assertTrue(
+          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Article with image using %s styled.fo".formatted(factory)).toURI()));
+      assertEquals(expected, fo);
+    }
   }
 
   @ParameterizedTest
@@ -159,13 +173,29 @@ class DocBookTransformerTests {
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
 
-    final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
-    assertTrue(fo.contains("Sample"));
-    assertTrue(fo.contains(
-        "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-    final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-        .getResource("Article with non existing image using %s.fo".formatted(factory)).toURI()));
-    assertEquals(expected, fo);
+    {
+      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("Sample"));
+      assertTrue(fo.contains(
+          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Article with non existing image using %s raw.fo".formatted(factory))
+          .toURI()));
+      assertEquals(expected, fo);
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(
+          DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("Sample"));
+      assertTrue(fo.contains(
+          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Article with non existing image using %s styled.fo".formatted(factory))
+          .toURI()));
+      assertEquals(expected, fo);
+    }
   }
 
   @ParameterizedTest
@@ -183,7 +213,7 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("<fo:block"));
       assertTrue(fo.contains("targeted at DocBook users"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Howto shortened using %s.fo".formatted(factory)).toURI()));
+          .getResource("Howto shortened using %s raw.fo".formatted(factory)).toURI()));
       assertEquals(expected, fo);
     }
 
@@ -195,6 +225,19 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
       assertTrue(fo.contains("targeted at DocBook users"));
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(
+          DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("targeted at DocBook users"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Howto shortened using %s styled.fo".formatted(factory)).toURI()));
+      assertEquals(expected, fo);
     }
 
     {
