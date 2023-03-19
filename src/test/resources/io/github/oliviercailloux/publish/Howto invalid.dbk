@@ -8,6 +8,7 @@
 <!ENTITY yes "<phrase role='unicode yes'>YES</phrase>">
 <!ENTITY no "<phrase role='unicode no'>NO</phrase>">
 ]>
+<!-- Changed the authorgroup element to authorgroupinvalid, which makes it a syntaxically correct XML file but invalid DocBook file. -->
 <article xmlns="http://docbook.org/ns/docbook"
 	 xmlns:xl="http://www.w3.org/1999/xlink"
 	 version="5.0" xml:lang="en">

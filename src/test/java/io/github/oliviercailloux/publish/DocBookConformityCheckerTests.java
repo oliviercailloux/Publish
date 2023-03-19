@@ -10,23 +10,23 @@ import org.junit.jupiter.api.Test;
 public class DocBookConformityCheckerTests {
 
   @Test
-  void testDocBookValid() throws Exception {
+  void testValidArticle() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook howto shortened.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     assertDoesNotThrow(() -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
   }
 
   @Test
-  void testDocBookValidArticle() throws Exception {
+  void testValidHowto() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Howto shortened.dbk").toString());
     assertDoesNotThrow(() -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
   }
 
   @Test
-  void testDocBookInvalid() throws Exception {
-    final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook howto invalid.xml").toString());
+  void testInvalidHowto() throws Exception {
+    final StreamSource docBook =
+        new StreamSource(DocBookTransformerTests.class.getResource("Howto invalid.dbk").toString());
     assertThrows(VerifyException.class,
         () -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
   }
