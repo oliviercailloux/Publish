@@ -18,10 +18,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 public class FoToPdfTransformerTests {
 
   @ParameterizedTest
-  @EnumSource(KnownFactory.class)
+  @EnumSource
   void testFoToPdf(KnownFactory knownFactory) throws Exception {
     final StreamSource src =
-        new StreamSource(DocBookHelperTests.class.getResource("article.fo").toString());
+        new StreamSource(DocBookTransformerTests.class.getResource("article.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
       FoToPdfTransformer.usingFactory(knownFactory.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
@@ -36,10 +36,10 @@ public class FoToPdfTransformerTests {
   }
 
   @ParameterizedTest
-  @EnumSource(KnownFactory.class)
+  @EnumSource
   void testFoInvalidToPdf(KnownFactory knownFactory) throws Exception {
     final StreamSource src =
-        new StreamSource(DocBookHelperTests.class.getResource("wrong.fo").toString());
+        new StreamSource(DocBookTransformerTests.class.getResource("wrong.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
       final ToBytesTransformer t = FoToPdfTransformer.usingFactory(knownFactory.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
