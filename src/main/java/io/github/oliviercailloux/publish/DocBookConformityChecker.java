@@ -33,7 +33,7 @@ public class DocBookConformityChecker {
    * @see SchemaHelper
    * @see XMLSyntaxSchemaFactory
    */
-  public static ConformityChecker usingDefaults() {
+  public static ConformityChecker usingEmbeddedSchema() {
     final ConformityChecker cc;
     try {
       cc = cc(new XMLSyntaxSchemaFactory(), SCHEMA_SOURCE);

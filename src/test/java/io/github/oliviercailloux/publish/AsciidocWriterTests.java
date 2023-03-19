@@ -95,13 +95,13 @@ class AsciidocWriterTests {
       {
         final String docBookPartial =
             adocConverter.convert(written, Options.builder().backend("docbook").build());
-        assertThrows(VerifyException.class, () -> DocBookConformityChecker.usingDefaults()
+        assertThrows(VerifyException.class, () -> DocBookConformityChecker.usingEmbeddedSchema()
             .verifyValid(new StreamSource(new StringReader(docBookPartial))));
       }
       {
         final String docBookFull = adocConverter.convert(written,
             Options.builder().headerFooter(true).backend("docbook").build());
-        assertDoesNotThrow(() -> DocBookConformityChecker.usingDefaults()
+        assertDoesNotThrow(() -> DocBookConformityChecker.usingEmbeddedSchema()
             .verifyValid(new StreamSource(new StringReader(docBookFull))));
       }
     }

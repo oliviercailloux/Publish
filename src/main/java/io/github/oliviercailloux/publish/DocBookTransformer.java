@@ -31,13 +31,11 @@ public class DocBookTransformer {
   public static final StreamSource TO_XHTML_STYLESHEET =
       new StreamSource("https://cdn.docbook.org/release/xsl/current/xhtml5/docbook.xsl");
 
-  public static DocBookTransformer usingDefaultFactory() {
-    /* FIXME decide on the default. */
-    final TransformerFactory factory = TransformerFactory.newDefaultInstance();
-    // return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
-    return new DocBookTransformer(factory);
-  }
-
+  /**
+   * @param factory I recommend using the XALAN or SAXON factory; the JDK embedded one fails on
+   *        multiple DocBook stylesheets.
+   * @return a doc book transformer
+   */
   public static DocBookTransformer usingFactory(TransformerFactory factory) {
     return new DocBookTransformer(factory);
   }

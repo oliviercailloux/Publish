@@ -123,13 +123,6 @@ public class FoToPdfTransformer {
     }
   }
 
-  public static FoToPdfTransformer usingDefaultFactory() {
-    /* FIXME decide on the default. */
-    final TransformerFactory factory = TransformerFactory.newDefaultInstance();
-    // return new DocBookTransformer(new org.apache.xalan.processor.TransformerFactoryImpl());
-    return new FoToPdfTransformer(factory);
-  }
-
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {
     return new FoToPdfTransformer(factory);
   }

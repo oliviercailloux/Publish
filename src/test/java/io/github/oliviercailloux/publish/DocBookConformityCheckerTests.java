@@ -13,14 +13,14 @@ public class DocBookConformityCheckerTests {
   void testValidArticle() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
-    assertDoesNotThrow(() -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
+    assertDoesNotThrow(() -> DocBookConformityChecker.usingEmbeddedSchema().verifyValid(docBook));
   }
 
   @Test
   void testValidHowto() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookTransformerTests.class.getResource("Howto shortened.dbk").toString());
-    assertDoesNotThrow(() -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
+    assertDoesNotThrow(() -> DocBookConformityChecker.usingEmbeddedSchema().verifyValid(docBook));
   }
 
   @Test
@@ -28,6 +28,6 @@ public class DocBookConformityCheckerTests {
     final StreamSource docBook =
         new StreamSource(DocBookTransformerTests.class.getResource("Howto invalid.dbk").toString());
     assertThrows(VerifyException.class,
-        () -> DocBookConformityChecker.usingDefaults().verifyValid(docBook));
+        () -> DocBookConformityChecker.usingEmbeddedSchema().verifyValid(docBook));
   }
 }
