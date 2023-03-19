@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<article xmlns="http://docbook.org/ns/docbook" version="5.0">
+	<info>
+		<title>My Article</title>
+	</info>
+	<para>Paragraph</para>
+	<section>
+		<title>On the Possibility of Going Home</title>
+		<para>Another paragraph</para>
+		<figure>
+			<title>Sample</title>
+			<mediaobject>
+				<imageobject>
+					<imagedata fileref="https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png" scale="5" />
+				</imageobject>
+			</mediaobject>
+		</figure>
+	</section>
+</article>

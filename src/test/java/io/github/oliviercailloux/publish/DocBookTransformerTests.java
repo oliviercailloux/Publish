@@ -167,6 +167,27 @@ class DocBookTransformerTests {
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
+  void testArticleWithSmallImageToFo(KnownFactory factory) throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookTransformerTests.class.getResource("Article with image.dbk").toString());
+
+    final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+
+    final StreamSource myStyle = new StreamSource(
+        DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+    final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+    assertTrue(fo.contains("Sample"));
+    assertTrue(
+        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+    Files.writeString(Path.of("Article with small image using %s styled.fo".formatted(factory)),
+        fo);
+    final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+        .getResource("Article with small image using %s styled.fo".formatted(factory)).toURI()));
+    assertEquals(expected, fo);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testArticleWithNonExistingImageToFo(KnownFactory factory) throws Exception {
     final StreamSource docBook = new StreamSource(DocBookTransformerTests.class
         .getResource("Article with non existing image.dbk").toString());
