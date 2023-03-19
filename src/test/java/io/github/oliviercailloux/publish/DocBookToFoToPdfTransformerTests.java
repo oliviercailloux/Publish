@@ -4,31 +4,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.MoreCollectors;
-import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
-import io.github.oliviercailloux.jaris.xml.XmlName;
-import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.io.StringReader;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Element;
 
 class DocBookToFoToPdfTransformerTests {
   @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DocBookToFoToPdfTransformerTests.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(DocBookToFoToPdfTransformerTests.class);
 
   /**
    * <p>
@@ -43,11 +35,17 @@ class DocBookToFoToPdfTransformerTests {
    * <p>
    * Same behavior with Saxon than with Xalan.
    * </p>
+   * <p>
+   * ABout hyphenation, we can use, but not necessarily modify, en (en, en_GB and en_US), see
+   * https://svn.lal.in2p3.fr/LCG/QWG/External/offo-hyphenation-fop-1.0/licenses.html#en and
+   * https://opensource.stackexchange.com/q/10426; and FR, see
+   * https://markmail.org/message/scd3ciflggk6e5rs
+   * </p>
    */
   @Test
   void testSimpleArticleToPdf() throws Exception {
-    final StreamSource docBook = new StreamSource(
-        DocBookToFoToPdfTransformerTests.class.getResource("docbook simple article.xml").toString());
+    final StreamSource docBook = new StreamSource(DocBookToFoToPdfTransformerTests.class
+        .getResource("docbook simple article.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
     final DocBookTransformer helper =
@@ -128,8 +126,8 @@ class DocBookToFoToPdfTransformerTests {
    */
   @Test
   void testHowToShortenedToPdfSaxon() throws Exception {
-    final StreamSource docBook = new StreamSource(
-        DocBookToFoToPdfTransformerTests.class.getResource("docbook howto shortened.xml").toString());
+    final StreamSource docBook = new StreamSource(DocBookToFoToPdfTransformerTests.class
+        .getResource("docbook howto shortened.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
     final DocBookTransformer helper =
@@ -149,8 +147,8 @@ class DocBookToFoToPdfTransformerTests {
    */
   @Test
   void testHowToShortenedToPdfXalan() throws Exception {
-    final StreamSource docBook = new StreamSource(
-        DocBookToFoToPdfTransformerTests.class.getResource("docbook howto shortened.xml").toString());
+    final StreamSource docBook = new StreamSource(DocBookToFoToPdfTransformerTests.class
+        .getResource("docbook howto shortened.xml").toString());
     DocBookConformityChecker.usingDefaults().verifyValid(docBook);
 
     final DocBookTransformer helper =

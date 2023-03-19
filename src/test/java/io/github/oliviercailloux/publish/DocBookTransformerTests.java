@@ -28,6 +28,17 @@ class DocBookTransformerTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(DocBookTransformerTests.class);
 
+  public static void main(String[] args) throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookTransformerTests.class.getResource("Overly long line.dbk").toString());
+    final DocBookTransformer helper = DocBookTransformer.usingFactory(KnownFactory.XALAN.factory());
+    final StreamSource myStyle = new StreamSource(
+        DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+
+    final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+    Files.writeString(Path.of("out.fo"), fo);
+  }
+
   @Test
   void testJdkFactoryFoThrows() throws Exception {
     final XmlTransformer t = XmlTransformer.usingFactory(KnownFactory.JDK.factory());
@@ -68,7 +79,7 @@ class DocBookTransformerTests {
   }
 
   @ParameterizedTest
-  @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
+  @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFo(KnownFactory factory) throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookTransformerTests.class.getResource("Simple article.dbk").toString());

@@ -7,11 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 
 public class FoToPdfTransformerTests {
@@ -125,6 +129,28 @@ public class FoToPdfTransformerTests {
       final Throwable cause = e.getCause();
       assertEquals(TransformerException.class, cause.getClass());
       assertTrue(cause.getMessage().contains("LineBreaking"));
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource
+  void testOverlyLongLineHyphenates(KnownFactory factoryFoToPdf) throws Exception {
+    final StreamSource src = new StreamSource(
+        DocBookTransformerTests.class.getResource("Overly long line.fo").toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      final byte[] pdf = pdfStream.toByteArray();
+      Files.write(Path.of("out.pdf"), pdf);
+      assertTrue(pdf.length >= 10);
+      try (PDDocument document = PDDocument.load(pdf)) {
+        final int numberOfPages = document.getNumberOfPages();
+        assertEquals(1, numberOfPages);
+        assertEquals("My overly long line", document.getDocumentInformation().getTitle());
+        final PDFTextStripper stripper = new PDFTextStripper();
+        final String text = stripper.getText(document);
+        assertTrue(text.contains("incomprehensibil-\n" + "ities"));
+      }
     }
   }
 }
