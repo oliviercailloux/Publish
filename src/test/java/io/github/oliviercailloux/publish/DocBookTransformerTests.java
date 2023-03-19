@@ -15,8 +15,8 @@ import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 import javax.xml.transform.stream.StreamSource;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -27,6 +27,10 @@ import org.w3c.dom.Element;
 class DocBookTransformerTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(DocBookTransformerTests.class);
+
+  private static final Pattern IDS_PATTERN = Pattern.compile("id=\".+\"");
+
+  private static final Pattern REF_PATTERN = Pattern.compile("internal-destination=\".+\"");
 
   public static void main(String[] args) throws Exception {
     final StreamSource docBook = new StreamSource(
@@ -58,10 +62,9 @@ class DocBookTransformerTests {
   }
 
   @Test
-  @Disabled("TODO")
   void testSimpleArticleToLocalXhtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
 
     final StreamSource localStyle = new StreamSource(
         "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
@@ -76,6 +79,17 @@ class DocBookTransformerTests {
         documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
+  }
+
+  private static String withoutIds(String original) {
+    final String withoutBlockIds = IDS_PATTERN.matcher(original).replaceAll(r -> "id=\"\"");
+    final String withoutIds =
+        REF_PATTERN.matcher(withoutBlockIds).replaceAll(r -> "internal-destination=\"\"");
+    return withoutIds;
+  }
+
+  private static void assertEqualsApartFromIds(String expected, String fo) {
+    assertEquals(withoutIds(expected), withoutIds(fo));
   }
 
   @ParameterizedTest
@@ -160,7 +174,7 @@ class DocBookTransformerTests {
           fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Article with image using %s raw.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
@@ -172,7 +186,7 @@ class DocBookTransformerTests {
           fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Article with image using %s styled.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
   }
 
@@ -192,7 +206,7 @@ class DocBookTransformerTests {
         fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
     final String expected = Files.readString(Path.of(DocBookTransformerTests.class
         .getResource("Article with small image using %s styled.fo".formatted(factory)).toURI()));
-    assertEquals(expected, fo);
+    assertEqualsApartFromIds(expected, fo);
   }
 
   @ParameterizedTest
@@ -211,7 +225,7 @@ class DocBookTransformerTests {
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Article with non existing image using %s raw.fo".formatted(factory))
           .toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
@@ -224,7 +238,7 @@ class DocBookTransformerTests {
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Article with non existing image using %s styled.fo".formatted(factory))
           .toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
   }
 
@@ -244,7 +258,7 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("targeted at DocBook users"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Howto shortened using %s raw.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
@@ -267,7 +281,7 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("targeted at DocBook users"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Howto shortened using %s styled.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
@@ -313,7 +327,7 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     /*
      * new StreamSource(
      * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
@@ -334,7 +348,7 @@ class DocBookTransformerTests {
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testSimpleArticleToXhtmlChangeCss(KnownFactory factory) throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     final String xhtml = DocBookTransformer.usingFactory(factory.factory())
         .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
             XmlName.localName("docbook.css.source"), ""))
@@ -356,7 +370,7 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlSaxonParamsNoneThrows() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     final XmlException xmlExc = assertThrows(XmlException.class,
         () -> DocBookTransformer.usingFactory(KnownFactory.SAXON.factory())
             .usingXhtmlStylesheet(ImmutableMap.of()).transform(docBook));
@@ -369,7 +383,7 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlSaxonParamsSomeThrows() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     final XmlException xmlExc = assertThrows(XmlException.class,
         () -> DocBookTransformer.usingFactory(KnownFactory.SAXON.factory())
             .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css"))
@@ -383,7 +397,7 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlSaxonParamsSomeDoesntThrow() throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("docbook simple article.xml").toString());
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
     assertDoesNotThrow(() -> DocBookTransformer.usingFactory(KnownFactory.SAXON.factory())
         .usingXhtmlStylesheet(ImmutableMap.of(XmlName.localName("docbook.css.source"), ""))
         .transform(docBook));

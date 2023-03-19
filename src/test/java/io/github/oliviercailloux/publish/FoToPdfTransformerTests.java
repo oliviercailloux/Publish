@@ -114,6 +114,11 @@ public class FoToPdfTransformerTests {
     }
   }
 
+  /**
+   * Attempting to convert "Howto shortened" to PDF fails. This seems to be too complex for this
+   * process. Tables are not supported; and even without tables, it complains about some line
+   * overflow (including without my custom styling). I didn’t investigate further.
+   */
   @CartesianTest
   void testHowtoThrows(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,

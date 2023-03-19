@@ -22,26 +22,6 @@ class DocBookToFoToPdfTransformerTests {
   private static final Logger LOGGER =
       LoggerFactory.getLogger(DocBookToFoToPdfTransformerTests.class);
 
-  /**
-   * <p>
-   * If there is no “en.hyp” file, a warning complains that “org.apache.fop.hyphenation.Hyphenator -
-   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: projectroot/en.hyp”, but
-   * then there is a single “Hyphenation possible? true”, and the process succeeds.
-   * </p>
-   * <p>
-   * If the “en.hyp” file is present, org.apache.fop.hyphenation.Hyphenator issues no warning, then
-   * there is a single “Hyphenation possible? true”, and the process succeeds.
-   * </p>
-   * <p>
-   * Same behavior with Saxon than with Xalan.
-   * </p>
-   * <p>
-   * ABout hyphenation, we can use, but not necessarily modify, en (en, en_GB and en_US), see
-   * https://svn.lal.in2p3.fr/LCG/QWG/External/offo-hyphenation-fop-1.0/licenses.html#en and
-   * https://opensource.stackexchange.com/q/10426; and FR, see
-   * https://markmail.org/message/scd3ciflggk6e5rs
-   * </p>
-   */
   @Test
   void testSimpleArticleToPdf() throws Exception {
     final StreamSource docBook = new StreamSource(DocBookToFoToPdfTransformerTests.class
@@ -110,20 +90,6 @@ class DocBookToFoToPdfTransformerTests {
     }
   }
 
-  /**
-   * Attempting to convert "docbook howto shortened.xml" to PDF fails. This seems to be too complex
-   * for this process. Tables are not supported; and even without tables, it complains about some
-   * line overflow (including without my custom styling). I didn’t investigate further.
-   * <p>
-   * If there is no “en.hyp” file, a warning complains that “org.apache.fop.hyphenation.Hyphenator -
-   * I/O problem while trying to load en.hyp java.io.FileNotFoundException: projectRoot/en.hyp”,
-   * then multiple “Hyphenation possible? true”, then (much later) “Hyphenation possible? false”.
-   * </p>
-   * <p>
-   * If the “en.hyp” file is present, org.apache.fop.hyphenation.Hyphenator issues no warning, the
-   * rest does not change.
-   * </p>
-   */
   @Test
   void testHowToShortenedToPdfSaxon() throws Exception {
     final StreamSource docBook = new StreamSource(DocBookToFoToPdfTransformerTests.class
