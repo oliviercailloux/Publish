@@ -169,7 +169,7 @@ class DocBookTransformerTests {
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testArticleWithSmallImageToFo(KnownFactory factory) throws Exception {
     final StreamSource docBook = new StreamSource(
-        DocBookTransformerTests.class.getResource("Article with image.dbk").toString());
+        DocBookTransformerTests.class.getResource("Article with small image.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
 
@@ -179,8 +179,6 @@ class DocBookTransformerTests {
     assertTrue(fo.contains("Sample"));
     assertTrue(
         fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    Files.writeString(Path.of("Article with small image using %s styled.fo".formatted(factory)),
-        fo);
     final String expected = Files.readString(Path.of(DocBookTransformerTests.class
         .getResource("Article with small image using %s styled.fo".formatted(factory)).toURI()));
     assertEquals(expected, fo);

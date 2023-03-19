@@ -7,14 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 
 public class FoToPdfTransformerTests {
@@ -60,24 +57,19 @@ public class FoToPdfTransformerTests {
   }
 
   @CartesianTest
-  void testArticleWithImage(
+  void testArticleWithImageThrows(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-          pdf);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My Article", document.getDocumentInformation().getTitle());
-      }
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
+      final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
+      final Throwable cause = e.getCause();
+      assertEquals(TransformerException.class, cause.getClass());
+      assertTrue(cause.getMessage().contains("LineBreaking"));
     }
   }
 
@@ -93,8 +85,6 @@ public class FoToPdfTransformerTests {
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
-      Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-          pdf);
       try (PDDocument document = PDDocument.load(pdf)) {
         final int numberOfPages = document.getNumberOfPages();
         assertEquals(1, numberOfPages);
@@ -103,18 +93,38 @@ public class FoToPdfTransformerTests {
     }
   }
 
-  @ParameterizedTest
-  @EnumSource
-  void testFoInvalidToPdf(KnownFactory knownFactory) throws Exception {
-    final StreamSource src =
-        new StreamSource(DocBookTransformerTests.class.getResource("wrong.fo").toString());
+  @CartesianTest
+  void testArticleWithNonExistingImageThrows(
+      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
+      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final StreamSource src = new StreamSource(DocBookTransformerTests.class
+        .getResource(
+            "Article with non existing image using %s styled.fo".formatted(factoryDocBookToFo))
+        .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(knownFactory.factory())
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
       final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
       final Throwable cause = e.getCause();
       assertEquals(TransformerException.class, cause.getClass());
       assertEquals(FileNotFoundException.class, cause.getCause().getClass());
+    }
+  }
+
+  @CartesianTest
+  void testHowtoThrows(
+      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
+      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final StreamSource src = new StreamSource(DocBookTransformerTests.class
+        .getResource("Howto shortened using %s styled.fo".formatted(factoryDocBookToFo))
+        .toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
+      final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
+      final Throwable cause = e.getCause();
+      assertEquals(TransformerException.class, cause.getClass());
+      assertTrue(cause.getMessage().contains("LineBreaking"));
     }
   }
 }
