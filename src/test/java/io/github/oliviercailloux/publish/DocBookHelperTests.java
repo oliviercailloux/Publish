@@ -45,53 +45,6 @@ class DocBookHelperTests {
   }
 
   @Test
-  void testFoToPdf() throws Exception {
-    final StreamSource src =
-        new StreamSource(DocBookHelperTests.class.getResource("article.fo").toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My Article", document.getDocumentInformation().getTitle());
-      }
-    }
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My Article", document.getDocumentInformation().getTitle());
-      }
-    }
-  }
-
-  @Test
-  void testFoInvalidToPdf() throws Exception {
-    final StreamSource src =
-        new StreamSource(DocBookHelperTests.class.getResource("wrong.fo").toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      assertThrows(XmlException.class,
-          () -> DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-              .usingFoStylesheet(ImmutableMap.of())
-              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
-              .toStream(src, pdfStream));
-      assertThrows(XmlException.class,
-          () -> DocBookTransformer
-              .usingFactory(new org.apache.xalan.processor.TransformerFactoryImpl())
-              .usingFoStylesheet(ImmutableMap.of())
-              .asDocBookToPdfTransformer(Path.of("non-existent-" + Instant.now()).toUri())
-              .toStream(src, pdfStream));
-    }
-  }
-
-  @Test
   void testDocBookSimpleArticleToFo() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookHelperTests.class.getResource("docbook simple article.xml").toString());
