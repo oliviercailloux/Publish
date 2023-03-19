@@ -7,30 +7,30 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.stream.Stream;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junitpioneer.jupiter.cartesian.CartesianTest;
 
 public class FoToPdfTransformerTests {
 
-  @ParameterizedTest
-  @MethodSource("biFactories")
-  void testSimpleArticleToPdf(KnownFactory factoryDocBookToFo, KnownFactory factoryFoToPdf)
-      throws Exception {
+  @CartesianTest
+  void testSimpleArticleToPdf(
+      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
+      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Simple article using %s raw.fo".formatted("SAXON")).toString());
+        .getResource("Simple article using %s raw.fo".formatted(factoryDocBookToFo)).toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(knownFactory.factory())
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
           .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
-      // Files.write(Path.of("out.pdf"), pdf);
+      Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
+          pdf);
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
         final int numberOfPages = document.getNumberOfPages();
@@ -38,10 +38,6 @@ public class FoToPdfTransformerTests {
         assertEquals(null, document.getDocumentInformation().getTitle());
       }
     }
-  }
-
-  private static Stream<Arguments> biFactories() {
-    return Stream.of(Arguments.arguments());
   }
 
   @ParameterizedTest
