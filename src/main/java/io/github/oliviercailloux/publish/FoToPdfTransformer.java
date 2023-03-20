@@ -123,10 +123,6 @@ public class FoToPdfTransformer {
     }
   }
 
-  /**
-   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
-   * @return a transformer
-   */
   public static ToBytesTransformer usingFactory(TransformerFactory factory) {
     final FopFactory fopFactory = getFopFactory();
     final XmlTransformer transformer = XmlTransformer.usingFactory(factory);

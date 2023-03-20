@@ -236,6 +236,7 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("On the Possibility of Going Home"));
     }
 
+    /* FIXME This is not using CP! Need to figure out how to change this. */
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
