@@ -70,8 +70,7 @@ public class Timing {
     final String fo = toFo.transform(docBookSource);
     final StreamSource foSource = new StreamSource(new StringReader(fo));
     final ToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory, L3_DIR.toUri());
-    toPdf.toSink(new StreamSource(new StringReader(docBook)),
-        MoreFiles.asByteSink(L3_DIR.resolve("Lecture notes.pdf")));
+    toPdf.toSink(foSource, MoreFiles.asByteSink(L3_DIR.resolve("Lecture notes.pdf")));
   }
 
   @Test
