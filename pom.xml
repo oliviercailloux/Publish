@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>io.github.oliviercailloux</groupId>
 		<artifactId>pom</artifactId>
-		<version>0.0.16</version>
+		<version>0.0.17</version>
 	</parent>
 	<artifactId>publish</artifactId>
 	<version>0.0.9-SNAPSHOT</version>
@@ -34,7 +34,7 @@
 		<dependency>
 			<groupId>io.github.oliviercailloux</groupId>
 			<artifactId>jaris</artifactId>
-			<version>0.0.22</version>
+			<version>0.0.23</version>
 		</dependency>
 
 		<dependency>
@@ -76,11 +76,11 @@
 					<groupId>xml-apis</groupId>
 					<artifactId>xml-apis</artifactId>
 				</exclusion>
-				<!--				Requires xml-apis-ext for e.g. SVGDocument used by Batik to parse SVG graphics.-->
-				<!--				<exclusion>-->
-				<!--					<groupId>xml-apis</groupId>-->
-				<!--					<artifactId>xml-apis-ext</artifactId>-->
-				<!--				</exclusion>-->
+<!--				Requires xml-apis-ext for e.g. SVGDocument used by Batik to parse SVG graphics.-->
+<!--				<exclusion>-->
+<!--					<groupId>xml-apis</groupId>-->
+<!--					<artifactId>xml-apis-ext</artifactId>-->
+<!--				</exclusion>-->
 				<exclusion>
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>

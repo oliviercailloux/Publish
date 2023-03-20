@@ -7,8 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
-import java.nio.file.Path;
-import java.time.Instant;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -26,8 +24,7 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Simple article using %s raw.fo".formatted(factoryDocBookToFo)).toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
       // pdf);
@@ -47,8 +44,7 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)).toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -67,8 +63,7 @@ public class FoToPdfTransformerTests {
         .getResource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
       final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
       final Throwable cause = e.getCause();
       assertEquals(TransformerException.class, cause.getClass());
@@ -84,8 +79,7 @@ public class FoToPdfTransformerTests {
         .getResource("Article with small image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {
@@ -105,8 +99,7 @@ public class FoToPdfTransformerTests {
             "Article with non existing image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
       final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
       final Throwable cause = e.getCause();
       assertEquals(TransformerException.class, cause.getClass());
@@ -127,8 +120,7 @@ public class FoToPdfTransformerTests {
         .getResource("Howto shortened using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri());
+      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
       final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
       final Throwable cause = e.getCause();
       assertEquals(TransformerException.class, cause.getClass());
@@ -142,8 +134,7 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(
         DocBookTransformerTests.class.getResource("Overly long line.fo").toString());
     try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-          .usingBaseUri(Path.of("non-existent-" + Instant.now()).toUri()).toStream(src, pdfStream);
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
       final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       try (PDDocument document = PDDocument.load(pdf)) {

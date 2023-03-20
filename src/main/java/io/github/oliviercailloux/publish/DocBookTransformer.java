@@ -4,6 +4,7 @@ import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
+import io.github.oliviercailloux.jaris.xml.XmlTransformer.OutputProperties;
 import java.util.Map;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
@@ -32,31 +33,44 @@ public class DocBookTransformer {
       new StreamSource("https://cdn.docbook.org/release/xsl/current/xhtml5/docbook.xsl");
 
   /**
+   * Provides a transformer instance using the provided factory.
+   *
    * @param factory I recommend using the XALAN or SAXON factory; the JDK embedded one fails on
    *        multiple DocBook stylesheets.
    * @return a doc book transformer
    */
   public static DocBookTransformer usingFactory(TransformerFactory factory) {
-    return new DocBookTransformer(factory);
+    /*
+     * Note that using a pedantic factory (i.e., failing upon encountering warning messages) is
+     * hopeless, as DocBook spits out messages such as “Making portrait pages on A4 paper
+     * (210mmx297mm)”.
+     */
+    return new DocBookTransformer(XmlTransformer.usingFactory(factory));
   }
 
   private final XmlTransformer transformer;
 
-  private DocBookTransformer(TransformerFactory transformerFactory) {
-    transformer = XmlTransformer.usingFactory(transformerFactory);
+  private DocBookTransformer(XmlTransformer transformer) {
+    this.transformer = transformer;
   }
 
   /**
+   * Returns a sourced transformer that may be used to transform documents using the provided
+   * stylesheet and a default output property {@link OutputProperties#INDENT}.
+   *
    * @param stylesheet for example, use {@link #TO_XHTML_STYLESHEET} to use a default DocBook to
    *        XHTML stylesheet.
    * @return a transformer
    * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
   public XmlConfiguredTransformer usingStylesheet(Source stylesheet) throws XmlException {
-    return transformer.forSource(stylesheet);
+    return transformer.usingStylesheet(stylesheet);
   }
 
   /**
+   * Returns a sourced transformer that may be used to transform documents using the provided
+   * stylesheet and a default output property {@link OutputProperties#INDENT}.
+   *
    * @param stylesheet for example, use {@link #TO_XHTML_STYLESHEET} to use a default DocBook to
    *        XHTML stylesheet
    * @param parameters to use together with the stylesheet
@@ -65,18 +79,34 @@ public class DocBookTransformer {
    */
   public XmlConfiguredTransformer usingStylesheet(Source stylesheet,
       Map<XmlName, String> parameters) {
-    return transformer.forSource(stylesheet, parameters);
+    return transformer.usingStylesheet(stylesheet, parameters);
+  }
+
+  /**
+   * Returns a sourced transformer that may be used to transform documents using the provided
+   * stylesheet.
+   *
+   * @param stylesheet for example, use {@link #TO_XHTML_STYLESHEET} to use a default DocBook to
+   *        XHTML stylesheet
+   * @param parameters to use together with the stylesheet
+   * @param outputProperties any properties to be used with the transformer.
+   * @return a transformer
+   * @throws XmlException iff an error occurs when parsing the stylesheet.
+   */
+  public XmlConfiguredTransformer usingStylesheet(Source stylesheet,
+      Map<XmlName, String> parameters, OutputProperties outputProperties) {
+    return transformer.usingStylesheet(stylesheet, parameters, outputProperties);
   }
 
   public XmlConfiguredTransformer usingFoStylesheet(Map<XmlName, String> parameters) {
-    return transformer.forSource(TO_FO_STYLESHEET, parameters);
+    return transformer.usingStylesheet(TO_FO_STYLESHEET, parameters);
   }
 
   public XmlConfiguredTransformer usingHtmlStylesheet(Map<XmlName, String> parameters) {
-    return transformer.forSource(TO_HTML_STYLESHEET, parameters);
+    return transformer.usingStylesheet(TO_HTML_STYLESHEET, parameters);
   }
 
   public XmlConfiguredTransformer usingXhtmlStylesheet(Map<XmlName, String> parameters) {
-    return transformer.forSource(TO_XHTML_STYLESHEET, parameters);
+    return transformer.usingStylesheet(TO_XHTML_STYLESHEET, parameters);
   }
 }

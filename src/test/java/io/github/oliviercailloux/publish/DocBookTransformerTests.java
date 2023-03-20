@@ -12,7 +12,10 @@ import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
+import io.github.oliviercailloux.jaris.xml.XmlTransformer.OutputProperties;
+import io.github.oliviercailloux.testutils.OutputCapturer;
 import java.io.StringReader;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -45,29 +48,53 @@ class DocBookTransformerTests {
 
   @Test
   void testJdkFactoryFoThrows() throws Exception {
+    final OutputCapturer capturer = OutputCapturer.capturer();
+    capturer.capture();
     final XmlTransformer t = XmlTransformer.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.forSource(DocBookTransformer.TO_FO_STYLESHEET));
+    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookTransformer.TO_FO_STYLESHEET));
+    capturer.restore();
+    assertTrue(capturer.out().isEmpty());
+    assertTrue(capturer.err().lines().count() > 100);
   }
 
   @Test
   void testJdkFactoryHtmlThrows() throws Exception {
+    final OutputCapturer capturer = OutputCapturer.capturer();
+    capturer.capture();
     final XmlTransformer t = XmlTransformer.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.forSource(DocBookTransformer.TO_HTML_STYLESHEET));
+    assertThrows(XmlException.class,
+        () -> t.usingStylesheet(DocBookTransformer.TO_HTML_STYLESHEET));
+    capturer.restore();
+    assertTrue(capturer.out().isEmpty());
+    assertTrue(capturer.err().lines().count() > 100);
   }
 
   @Test
   void testJdkFactoryXhtmlThrows() throws Exception {
+    final OutputCapturer capturer = OutputCapturer.capturer();
+    capturer.capture();
     final XmlTransformer t = XmlTransformer.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.forSource(DocBookTransformer.TO_XHTML_STYLESHEET));
+    assertThrows(XmlException.class,
+        () -> t.usingStylesheet(DocBookTransformer.TO_XHTML_STYLESHEET));
+    capturer.restore();
+    assertTrue(capturer.out().isEmpty());
+    assertTrue(capturer.err().lines().count() > 100);
   }
 
+  /**
+   * docbook-xsl-ns (1.79.2+dfsg-1) https://packages.debian.org/bullseye/docbook-xsl-ns
+   *
+   * @throws Exception
+   */
   @Test
-  void testSimpleArticleToLocalXhtmlXalan() throws Exception {
+  void testSimpleArticleToCpXhtmlXalan() throws Exception {
     final StreamSource docBook = new StreamSource(
         DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
 
     final StreamSource localStyle = new StreamSource(
-        "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
+        DocBookConformityChecker.class.getResource("docbook-xsl-ns/xhtml5/docbook.xsl").toString());
+    LOGGER.info("Using style {}.",
+        Files.readString(Path.of(new URL(localStyle.getSystemId()).toURI())));
 
     final String xhtml = DocBookTransformer.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(localStyle).transform(docBook);
@@ -99,22 +126,28 @@ class DocBookTransformerTests {
         DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet =
+        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
     {
-      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"11in\""));
       assertTrue(fo.contains("page-width=\"8.5in\""));
       assertTrue(fo.contains("<fo:block"));
       assertTrue(fo.contains("On the Possibility of Going Home"));
+      // Files.writeString(Path.of("Simple article using %s raw indented.fo".formatted(factory)),
+      // fo);
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Simple article using %s raw.fo".formatted(factory)).toURI()));
       assertEquals(expected, fo);
     }
 
     {
-      final String fo =
-          helper.usingFoStylesheet(ImmutableMap.of(XmlName.localName("paper.type"), "A4"))
-              .transform(docBook);
+      final String fo = helper.usingStylesheet(foStylesheet,
+          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
+          .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -124,7 +157,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -137,7 +172,91 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style with image.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+      assertTrue(
+          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(DocBookTransformer.class
+          .getResource("DocBook to Fo style with non existing image.xsl").toString());
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+      assertTrue(fo.contains(
+          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(names = {"SAXON"})
+  void testSimpleArticleToFoCp(KnownFactory factory) throws Exception {
+    final StreamSource docBook = new StreamSource(
+        DocBookTransformerTests.class.getResource("Simple article.dbk").toString());
+
+    final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet = new StreamSource(
+        DocBookConformityChecker.class.getResource("docbook-xsl-ns/fo/docbook.xsl").toString());
+
+    {
+      final String fo =
+          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.indent())
+              .transform(docBook);
+      assertTrue(fo.contains("page-height=\"11in\""));
+      assertTrue(fo.contains("page-width=\"8.5in\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+      /*
+       * Minor differences between the classpath and the online styles, such as text-align="start"
+       * VS "left".
+       */
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Simple article using %s raw classpath indented.fo".formatted(factory))
+          .toURI()));
+      assertEquals(expected, fo);
+    }
+
+    {
+      final String fo = helper.usingStylesheet(foStylesheet,
+          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
+          .transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(
+          DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
+      assertTrue(fo.contains("page-height=\"297mm\""));
+      assertTrue(fo.contains("page-width=\"210mm\""));
+      assertTrue(fo.contains("<fo:block"));
+      assertTrue(fo.contains("On the Possibility of Going Home"));
+      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
+          .getResource("Simple article using %s styled.fo".formatted(factory)).toURI()));
+      assertEquals(expected, fo);
+    }
+
+    {
+      final StreamSource myStyle = new StreamSource(
+          DocBookTransformer.class.getResource("DocBook to Fo style with image.xsl").toString());
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -166,9 +285,13 @@ class DocBookTransformerTests {
         DocBookTransformerTests.class.getResource("Article with image.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet =
+        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
     {
-      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("Sample"));
       assertTrue(
           fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
@@ -180,7 +303,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("Sample"));
       assertTrue(
           fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
@@ -200,7 +325,9 @@ class DocBookTransformerTests {
 
     final StreamSource myStyle = new StreamSource(
         DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
-    final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+    final String fo =
+        helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+            .transform(docBook);
     assertTrue(fo.contains("Sample"));
     assertTrue(
         fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
@@ -216,9 +343,13 @@ class DocBookTransformerTests {
         .getResource("Article with non existing image.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet =
+        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
     {
-      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("Sample"));
       assertTrue(fo.contains(
           "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
@@ -231,7 +362,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("Sample"));
       assertTrue(fo.contains(
           "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
@@ -249,9 +382,13 @@ class DocBookTransformerTests {
         DocBookTransformerTests.class.getResource("Howto shortened.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet =
+        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
     {
-      final String fo = helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"11in\""));
       assertTrue(fo.contains("page-width=\"8.5in\""));
       assertTrue(fo.contains("<fo:block"));
@@ -262,9 +399,9 @@ class DocBookTransformerTests {
     }
 
     {
-      final String fo =
-          helper.usingFoStylesheet(ImmutableMap.of(XmlName.localName("paper.type"), "A4"))
-              .transform(docBook);
+      final String fo = helper.usingStylesheet(foStylesheet,
+          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
+          .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -274,7 +411,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -287,7 +426,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(
           DocBookTransformer.class.getResource("DocBook to Fo style with image.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -299,7 +440,9 @@ class DocBookTransformerTests {
     {
       final StreamSource myStyle = new StreamSource(DocBookTransformer.class
           .getResource("DocBook to Fo style with non existing image.xsl").toString());
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).transform(docBook);
+      final String fo =
+          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
+              .transform(docBook);
       assertTrue(fo.contains("page-height=\"297mm\""));
       assertTrue(fo.contains("page-width=\"210mm\""));
       assertTrue(fo.contains("<fo:block"));
@@ -319,9 +462,13 @@ class DocBookTransformerTests {
         new StreamSource(DocBookTransformerTests.class.getResource("Howto invalid.dbk").toString());
 
     final DocBookTransformer helper = DocBookTransformer.usingFactory(factory.factory());
+    final StreamSource foStylesheet =
+        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
     helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook);
-    assertDoesNotThrow(() -> helper.usingFoStylesheet(ImmutableMap.of()).transform(docBook));
+    assertDoesNotThrow(
+        () -> helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
+            .transform(docBook));
   }
 
   @Test
