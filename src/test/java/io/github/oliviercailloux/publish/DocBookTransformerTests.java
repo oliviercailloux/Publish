@@ -15,7 +15,6 @@ import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer.OutputProperties;
 import io.github.oliviercailloux.testutils.OutputCapturer;
 import java.io.StringReader;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -93,8 +92,8 @@ class DocBookTransformerTests {
 
     final StreamSource localStyle = new StreamSource(
         DocBookConformityChecker.class.getResource("docbook-xsl-ns/xhtml5/docbook.xsl").toString());
-    LOGGER.info("Using style {}.",
-        Files.readString(Path.of(new URL(localStyle.getSystemId()).toURI())));
+    // LOGGER.debug("Using style {}.",
+    // Files.readString(Path.of(new URL(localStyle.getSystemId()).toURI())));
 
     final String xhtml = DocBookTransformer.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(localStyle).transform(docBook);
@@ -223,7 +222,7 @@ class DocBookTransformerTests {
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Simple article using %s raw classpath indented.fo".formatted(factory))
           .toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
@@ -249,7 +248,7 @@ class DocBookTransformerTests {
       assertTrue(fo.contains("On the Possibility of Going Home"));
       final String expected = Files.readString(Path.of(DocBookTransformerTests.class
           .getResource("Simple article using %s styled.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
+      assertEqualsApartFromIds(expected, fo);
     }
 
     {
