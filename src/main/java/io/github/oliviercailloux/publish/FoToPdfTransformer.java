@@ -133,7 +133,6 @@ public class FoToPdfTransformer {
   /**
    * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @return a transformer
-   * @throws IOException iff an error occurs while reading the fop factory required resources
    */
   public static ToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri) {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
