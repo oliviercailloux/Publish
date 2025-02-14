@@ -18,7 +18,6 @@ import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory.OutputProperties;
 import io.github.oliviercailloux.testutils.OutputCapturer;
 import java.io.StringReader;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
@@ -53,7 +52,7 @@ class DocBookTransformerTests {
     final OutputCapturer capturer = OutputCapturer.capturer();
     capturer.capture();
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.TO_FO_STYLESHEET));
+    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO));
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
     assertTrue(capturer.err().lines().count() > 100);
@@ -65,7 +64,7 @@ class DocBookTransformerTests {
     capturer.capture();
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
     assertThrows(XmlException.class,
-        () -> t.usingStylesheet(DocBookStylesheets.TO_HTML_STYLESHEET));
+        () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_HTML));
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
     assertTrue(capturer.err().lines().count() > 100);
@@ -77,7 +76,7 @@ class DocBookTransformerTests {
     capturer.capture();
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
     assertThrows(XmlException.class,
-        () -> t.usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET));
+        () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML));
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
     assertTrue(capturer.err().lines().count() > 100);
@@ -454,7 +453,7 @@ class DocBookTransformerTests {
     final StreamSource foStylesheet =
         new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
-    helper.usingStylesheet(DocBookStylesheets.TO_FO_STYLESHEET, ImmutableMap.of())
+    helper.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO, ImmutableMap.of())
         .charsToChars(docBook);
     assertDoesNotThrow(
         () -> helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
@@ -469,7 +468,7 @@ class DocBookTransformerTests {
      * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
      */
     final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
-        .usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET, ImmutableMap.of())
+        .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
         .charsToChars(docBook);
     LOGGER.debug("Resulting XHTML: {}.", xhtml);
     assertTrue(xhtml.contains("docbook.css"));
@@ -486,7 +485,7 @@ class DocBookTransformerTests {
   void testSimpleArticleToXhtmlChangeCss(KnownFactory factory) throws Exception {
     final CharSource docBook = charSource("Simple article.dbk");
     final String xhtml = XmlTransformerFactory.usingFactory(factory.factory())
-        .usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET,
+        .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
             ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
                 XmlName.localName("docbook.css.source"), ""))
         .charsToChars(docBook);
@@ -509,7 +508,7 @@ class DocBookTransformerTests {
     final CharSource docBook = charSource("Simple article.dbk");
     final XmlException xmlExc = assertThrows(XmlException.class,
         () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET, ImmutableMap.of())
+            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
             .charsToChars(docBook));
     final String reason = xmlExc.getCause().getMessage();
     assertEquals(
@@ -523,7 +522,7 @@ class DocBookTransformerTests {
     final CharSource docBook = charSource("Simple article.dbk");
     final XmlException xmlExc = assertThrows(XmlException.class,
         () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET,
+            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
                 ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css"))
             .charsToChars(docBook));
     final String reason = xmlExc.getCause().getMessage();
@@ -537,7 +536,7 @@ class DocBookTransformerTests {
     final CharSource docBook = charSource("Simple article.dbk");
     assertDoesNotThrow(
         () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.TO_XHTML_STYLESHEET,
+            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
                 ImmutableMap.of(XmlName.localName("docbook.css.source"), ""))
             .charsToChars(docBook));
   }
