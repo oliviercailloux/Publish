@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master master-name="A6" page-width="105mm" page-height="148.5mm" margin="1cm">
+      <fo:region-body margin="2cm" />
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+  <fo:page-sequence master-reference="A6">
+    <fo:flow flow-name="xsl-region-body">
+      <fo:block>Hello world</fo:block>
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>

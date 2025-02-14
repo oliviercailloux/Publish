@@ -1,0 +1,9 @@
+= A Java course
+
+== Presentation
+
+https://github.com/oliviercailloux/java-course/raw/main/L3/Pr%C3%A9sentation%20du%20cours%20Objet/presentation.pdf[Présentation]
+
+ifdef::backend-docbook5[]
+from-pdf::/home/olivier/Professions/Enseignement/java-course/L3/Présentation du cours Objet/presentation.pdf[end=-1]
+endif::[]

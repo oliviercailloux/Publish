@@ -10,11 +10,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import java.io.StringReader;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.xml.transform.stream.StreamSource;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.Options;
+import org.asciidoctor.SafeMode;
 import org.jruby.util.log.SLF4JLogger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -100,7 +102,7 @@ class AsciidocWriterTests {
       }
       {
         final String docBookFull = adocConverter.convert(written,
-            Options.builder().headerFooter(true).backend("docbook").build());
+            Options.builder().standalone(true).backend("docbook").build());
         assertDoesNotThrow(() -> DocBookConformityChecker.usingEmbeddedSchema()
             .verifyValid(new StreamSource(new StringReader(docBookFull))));
       }
@@ -116,14 +118,50 @@ class AsciidocWriterTests {
 
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
       final String docBookFull = adocConverter.convert(written,
-          Options.builder().headerFooter(true).backend("docbook").build());
+          Options.builder().standalone(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
       final String transformed =
           DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-              .usingFoStylesheet(ImmutableMap.of()).transform(docBookInput);
+              .usingFoStylesheet(ImmutableMap.of()).sourceToChars(docBookInput);
       assertTrue(transformed.contains("page-height=\"11in\""));
       assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));
     }
+  }
+
+  @Test
+  void testTransformLink() throws Exception {
+    URL inputUrl = AsciidocWriterTests.class.getResource("A Java course link.adoc");
+    final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
+    LOGGER.info("Creating Asciidoctor converter.");
+    final String docBook;
+    try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
+      LOGGER.info("Converting to Docbook.");
+      docBook = adocConverter.convert(inputStr, Options.builder().standalone(true).backend("docbook")
+          // .baseDir(L3_DIR.toAbsolutePath().toFile())
+          .safe(SafeMode.UNSAFE).build());
+    }
+    LOGGER.info("Validating Docbook.");
+    LOGGER.debug("Docbook: {}.", docBook);
+    DocBookConformityChecker.usingEmbeddedSchema()
+        .verifyValid(new StreamSource(new StringReader(docBook)));
+  }
+
+  @Test
+  void testTransformPresent() throws Exception {
+    URL inputUrl = AsciidocWriterTests.class.getResource("A Java course present.adoc");
+    final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
+    LOGGER.info("Creating Asciidoctor converter.");
+    final String docBook;
+    try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
+      LOGGER.info("Converting to Docbook.");
+      docBook = adocConverter.convert(inputStr, Options.builder().standalone(true).backend("docbook")
+          // .baseDir(L3_DIR.toAbsolutePath().toFile())
+          .safe(SafeMode.UNSAFE).build());
+    }
+    LOGGER.info("Validating Docbook.");
+    LOGGER.debug("Docbook: {}.", docBook);
+    DocBookConformityChecker.usingEmbeddedSchema()
+        .verifyValid(new StreamSource(new StringReader(docBook)));
   }
 
   @Test

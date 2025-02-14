@@ -1,10 +1,11 @@
 package io.github.oliviercailloux.publish;
 
-import io.github.oliviercailloux.jaris.xml.XmlConfiguredTransformer;
+import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
-import io.github.oliviercailloux.jaris.xml.XmlTransformer.OutputProperties;
+import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
+import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory.OutputProperties;
 import java.util.Map;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
@@ -45,12 +46,12 @@ public class DocBookTransformer {
      * hopeless, as DocBook spits out messages such as “Making portrait pages on A4 paper
      * (210mmx297mm)”.
      */
-    return new DocBookTransformer(XmlTransformer.usingFactory(factory));
+    return new DocBookTransformer(XmlTransformerFactory.usingFactory(factory));
   }
 
-  private final XmlTransformer transformer;
+  private final XmlTransformerFactory transformer;
 
-  private DocBookTransformer(XmlTransformer transformer) {
+  private DocBookTransformer(XmlTransformerFactory transformer) {
     this.transformer = transformer;
   }
 
@@ -63,8 +64,8 @@ public class DocBookTransformer {
    * @return a transformer
    * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
-  public XmlConfiguredTransformer usingStylesheet(Source stylesheet) throws XmlException {
-    return transformer.usingStylesheet(stylesheet);
+  public XmlTransformer usingStylesheet(Source stylesheet) throws XmlException {
+    return transformer.usingStylesheet(stylesheet, ImmutableMap.of(), OutputProperties.indent());
   }
 
   /**
@@ -77,9 +78,9 @@ public class DocBookTransformer {
    * @return a transformer
    * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
-  public XmlConfiguredTransformer usingStylesheet(Source stylesheet,
+  public XmlTransformer usingStylesheet(Source stylesheet,
       Map<XmlName, String> parameters) {
-    return transformer.usingStylesheet(stylesheet, parameters);
+    return transformer.usingStylesheet(stylesheet, parameters, OutputProperties.indent());
   }
 
   /**
@@ -93,20 +94,20 @@ public class DocBookTransformer {
    * @return a transformer
    * @throws XmlException iff an error occurs when parsing the stylesheet.
    */
-  public XmlConfiguredTransformer usingStylesheet(Source stylesheet,
+  public XmlTransformer usingStylesheet(Source stylesheet,
       Map<XmlName, String> parameters, OutputProperties outputProperties) {
     return transformer.usingStylesheet(stylesheet, parameters, outputProperties);
   }
 
-  public XmlConfiguredTransformer usingFoStylesheet(Map<XmlName, String> parameters) {
-    return transformer.usingStylesheet(TO_FO_STYLESHEET, parameters);
+  public XmlTransformer usingFoStylesheet(Map<XmlName, String> parameters) {
+    return transformer.usingStylesheet(TO_FO_STYLESHEET, parameters, OutputProperties.indent());
   }
 
-  public XmlConfiguredTransformer usingHtmlStylesheet(Map<XmlName, String> parameters) {
-    return transformer.usingStylesheet(TO_HTML_STYLESHEET, parameters);
+  public XmlTransformer usingHtmlStylesheet(Map<XmlName, String> parameters) {
+    return transformer.usingStylesheet(TO_HTML_STYLESHEET, parameters, OutputProperties.indent());
   }
 
-  public XmlConfiguredTransformer usingXhtmlStylesheet(Map<XmlName, String> parameters) {
-    return transformer.usingStylesheet(TO_XHTML_STYLESHEET, parameters);
+  public XmlTransformer usingXhtmlStylesheet(Map<XmlName, String> parameters) {
+    return transformer.usingStylesheet(TO_XHTML_STYLESHEET, parameters, OutputProperties.indent());
   }
 }

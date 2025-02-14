@@ -5,9 +5,14 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.io.ByteSource;
+import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.exceptions.Unchecker;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
+import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,6 +20,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
@@ -22,15 +28,18 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
-import org.apache.fop.apps.Fop;
+import org.apache.fop.apps.FopConfParser;
 import org.apache.fop.apps.FopFactory;
+import org.apache.fop.apps.MimeConstants;
 import org.apache.fop.events.Event;
 import org.apache.fop.events.EventFormatter;
 import org.apache.fop.events.EventListener;
 import org.apache.fop.events.model.EventSeverity;
-import org.apache.xmlgraphics.util.MimeConstants;
+import org.apache.fop.fo.FOTreeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
+import org.slf4j.spi.LoggingEventBuilder;
 import org.xml.sax.SAXException;
 
 public class FoToPdfTransformer {
@@ -65,14 +74,41 @@ public class FoToPdfTransformer {
     public void logAll() {
       for (Event event : events) {
         final String msg = EventFormatter.format(event);
+        Collection<Object> pValues = event.getParams().values();
+        ImmutableSet<Exception> exceptions = pValues.stream().filter(Exception.class::isInstance)
+            .map(Exception.class::cast).collect(ImmutableSet.toImmutableSet());
+        final Level level;
         if (event.getSeverity() == EventSeverity.INFO) {
-          LOGGER.debug("Informative event: {}.", msg);
+          level = Level.DEBUG;
         } else if (event.getSeverity() == EventSeverity.WARN) {
-          LOGGER.warn("Warning event: {}.", msg);
+          level = Level.WARN;
         } else if (event.getSeverity() == EventSeverity.ERROR) {
-          LOGGER.error("Error event: {}.", msg);
+          level = Level.ERROR;
         } else if (event.getSeverity() == EventSeverity.FATAL) {
-          LOGGER.error("Fatal event: {}.", msg);
+          level = Level.ERROR;
+        } else {
+          throw new VerifyException(
+              "Unexpected event severity: %s.".formatted(event.getSeverity()));
+        }
+        LoggingEventBuilder builder = LOGGER.atLevel(level);
+        if (exceptions.isEmpty()) {
+          String formatted = "Event severity %s: %s.".formatted(event.getSeverity(), msg);
+          builder.setMessage(formatted);
+          builder.log();
+        } else if (exceptions.size() == 1) {
+          String formatted = "Event severity %s: %s.".formatted(event.getSeverity(), msg);
+          builder.setMessage(formatted);
+          Exception e = Iterables.getOnlyElement(exceptions);
+          builder.setCause(e);
+          builder.log();
+        } else {
+          String formatted = "Event severity %s: %s, and %s exceptions."
+              .formatted(event.getSeverity(), msg, exceptions.size());
+          builder.setMessage(formatted);
+          builder.log();
+          for (Exception e : exceptions) {
+            LOGGER.atLevel(level).setCause(e).log();
+          }
         }
       }
     }
@@ -87,9 +123,9 @@ public class FoToPdfTransformer {
 
   private static class FoToBytesTransformer implements ToBytesTransformer {
     private final FopFactory fopFactory;
-    private final XmlTransformer delegateTransformer;
+    private final XmlTransformerFactory delegateTransformer;
 
-    private FoToBytesTransformer(FopFactory fopFactory, XmlTransformer delegateTransformer) {
+    private FoToBytesTransformer(FopFactory fopFactory, XmlTransformerFactory delegateTransformer) {
       this.fopFactory = fopFactory;
       this.delegateTransformer = delegateTransformer;
     }
@@ -100,22 +136,30 @@ public class FoToPdfTransformer {
       // foUserAgent.getEventBroadcaster().addEventListener(new LoggingEventListener());
 
       final FoEventListener l = new FoEventListener();
+      LOGGER.info("Listening to FOP events.");
       foUserAgent.getEventBroadcaster().addEventListener(l);
-
+      
       final Result res;
       try {
-        final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
-        res = new SAXResult(fop.getDefaultHandler());
+        LOGGER.info("Creating FOP.");
+        // final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
+        LOGGER.info("Creating SAX result.");
+        // res = new SAXResult(fop.getDefaultHandler());
+        res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, destination));
       } catch (FOPException e) {
         throw new IllegalStateException(e);
       }
-
-      delegateTransformer.usingEmptyStylesheet().transform(source, res);
+      
+      LOGGER.info("Transforming.");
+      delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
+      LOGGER.info("Transformed.");
       /*
        * This duplicates the serious event that will get thrown in the log, but we’d better do that
        * so that one can see the order of events in the log and thus where the first serious one
        * happened exactly.
        */
+      LOGGER.info("Got {} serious and {} not serious events.", l.seriouses().size(),
+          l.notSeriouses().size());
       l.logAll();
       l.seriouses().stream().findFirst().ifPresent(e -> {
         throw FoEventListener.asException(e);
@@ -125,7 +169,7 @@ public class FoToPdfTransformer {
 
   public static ToBytesTransformer usingFactory(TransformerFactory factory) {
     final FopFactory fopFactory = getFopFactory();
-    final XmlTransformer transformer = XmlTransformer.usingFactory(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
@@ -136,7 +180,32 @@ public class FoToPdfTransformer {
    */
   public static ToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri) {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
-    final XmlTransformer transformer = XmlTransformer.usingFactory(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+
+    return new FoToBytesTransformer(fopFactory, transformer);
+  }
+
+  /**
+   * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
+   * @return a transformer
+   */
+  public static ToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri,
+      ByteSource config) throws XmlException, IOException {
+    FopFactory fopFactory;
+    try {
+      fopFactory = getFopFactory(fopBaseUri, config);
+    } catch (SAXException e) {
+      throw new XmlException(e);
+    }
+    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+
+    return new FoToBytesTransformer(fopFactory, transformer);
+  }
+
+  public static ToBytesTransformer usingFactory(TransformerFactory factory, FopConfParser config)
+      throws XmlException {
+    FopFactory fopFactory = getFopFactory(config);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
@@ -145,7 +214,7 @@ public class FoToPdfTransformer {
     final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
     final URI base = Unchecker.URI_UNCHECKER.getUsing(() -> configUrl.toURI().resolve(".."));
     try {
-      return getFopFactory(configUrl, base);
+      return getFopFactory(base, Resources.asByteSource(configUrl));
     } catch (SAXException | IOException e) {
       throw new VerifyException(e);
     }
@@ -154,29 +223,38 @@ public class FoToPdfTransformer {
   private static FopFactory getFopFactory(URI fopBaseUri) {
     final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
     try {
-      return getFopFactory(configUrl, fopBaseUri);
+      return getFopFactory(fopBaseUri, Resources.asByteSource(configUrl));
     } catch (SAXException | IOException e) {
       throw new VerifyException(e);
     }
   }
 
   /**
-   * @param configUrl the FOP conf
    * @param fopBaseUri the base URI to resolve resource URIs against
+   * @param configUrl the FOP conf
    * @return a fop factory
    * @throws SAXException iff a SAX error was thrown parsing the FOP conf
    * @throws IOException iff an I/O error is thrown while parsing the FOP conf
    */
-  private static FopFactory getFopFactory(URL configUrl, URI fopBaseUri)
+  private static FopFactory getFopFactory(URI fopBaseUri, ByteSource config)
       throws SAXException, IOException {
     checkArgument(fopBaseUri.isAbsolute());
 
     final FopFactory fopFactory;
-    try (InputStream configStream = configUrl.openStream()) {
+    try (InputStream configStream = config.openBufferedStream()) {
       fopFactory = FopFactory.newInstance(fopBaseUri, configStream);
     }
-    verify(fopFactory.validateStrictly());
+    checkArgument(fopFactory.validateUserConfigStrictly());
+    checkArgument(fopFactory.validateStrictly());
+
+    return fopFactory;
+  }
+
+  private static FopFactory getFopFactory(FopConfParser config) {
+    final FopFactory fopFactory = config.getFopFactoryBuilder().setStrictFOValidation(true)
+        .setStrictUserConfigValidation(true).build();
     verify(fopFactory.validateUserConfigStrictly());
+    verify(fopFactory.validateStrictly());
 
     return fopFactory;
   }

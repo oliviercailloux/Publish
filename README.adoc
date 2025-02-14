@@ -15,3 +15,41 @@ This project adheres to the https://github.com/classgraph/classgraph/blob/master
 
 The API is _not_ stable. Write to me if you are interested in using this library and wonder about stabilizing its API, or want more example code.
 
+mvn -Prelease -DoutputFile=deps.txt org.apache.maven.plugins:maven-dependency-plugin:3.8.0:tree
+
+== DocBook
+
+xslTNG*
+These are XSLT 3.0 stylesheets for DocBook. They transform DocBook XML documents into clean, semantically rich HTML5. A CSS stylesheet suitable for online presentation is included. Producing high quality print output with a paged media capable CSS processor is also supported.
+https://xsltng.docbook.org/guide/2.5.0/
+The DocBook xslTNG stylesheets transform DocBook V5.x into HTML.
+The stylesheets can also be used to produce paged media such as PDF files. This works by having a slightly different HTML transformation initially, and then by further transforming the HTML so that it can be formatted with an appropriate CSS formatter to produce paged output. This is similar, but not the same as producing XSL Formatting Objects and then transforming those.
+There are no plans at the moment to produce XSL FO stylesheets.
+
+1.2. Getting the stylesheets
+
+There are three ways to get the stylesheets: you can download the latest release from GitHub, you can get them from Maven, or you can clone the repository and build them yourself. We’ll cover the first two options in this chapter; Chapter 6, Building the stylesheets covers the last option in detail.
+
+https://github.com/docbook/xslt20-stylesheets
+These are the XSLT 2.0 stylesheets for DocBook. These stylesheets represent a different line of development from the XSLT 1.0 stylesheets.
+In July, 2020, the DocBook xslTNG Stylesheets were first published. Those stylesheets are, effectively, replacements for these. Continued development of the 2.0 stylesheets is unlikely.
+https://norman.walsh.name/2011/08/25/docbook-xslt-2
+
+https://github.com/docbook/xslt10-stylesheets
+This repository contains the DocBook XSLT 1.0 Stylesheets
+The latest stable release is available at https://github.com/docbook/xslt10-stylesheets/releases/download/release/1.79.2/docbook-xsl-1.79.2.zip
+https://cdn.docbook.org/release/xsl/current/VERSION
+<fm:Version>snapshot</fm:Version>
+<xsl:param name="PreviousRelease">1.79.1</xsl:param>
+https://packages.debian.org/search?suite=all&searchon=names&keywords=docbook
+All of that are xsl 1.79…
+
+DocBook V5.x
+The version 5.0 release is a complete rewrite of DocBook in RELAX NG. The intent of this rewrite is to produce a schema that is true to the spirit of DocBook while simultaneously removing inconsistencies that have arisen as a natural consequence of DocBook's long, slow evolution. The Technical Committee has taken this opportunity to simplify a number of content models and tighten constraints where RELAX NG makes that possible.
+The most significant change for the 5.1 version is the addition of assemblies to DocBook to better support modular authoring practices.
+The Technical Committee provides the DocBook 5.0 and 5.1 schemas in other schema languages, including W3C XML Schema and an XML DTD, but the RELAX NG Schema is the normative schema.
+
+https://tdg.docbook.org/
+
+https://stackoverflow.com/questions/17929158/saxon-doesnt-support-saxonoutput-anymore
+https://saxonica.plan.io/issues/5665

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <fop version="1.0">
+  <DoesNotExist>true</DoesNotExist>
   <strict-configuration>true</strict-configuration>
-  <strict-validation>true</strict-validation>
   <fonts>
     <substitutions>
       <substitution>
         <from font-family="Symbol" font-weight="700"/>
-        <to font-family="Symbol"/>
+        <to font-family="TheVerkeerdFont"/>
       </substitution>
       <substitution>
         <from font-family="ZapfDingbats" font-weight="700"/>

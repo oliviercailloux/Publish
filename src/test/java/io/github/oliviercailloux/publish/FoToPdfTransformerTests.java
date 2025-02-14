@@ -4,18 +4,58 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.common.io.ByteSource;
+import io.github.oliviercailloux.jaris.io.PathUtils;
+import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
+import java.net.URI;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FoToPdfTransformerTests {
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(FoToPdfTransformerTests.class);
+
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN"})
+  void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
+    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+    // TODO should crash but just logs the error, it does not go through the listener.
+    ByteSource configSource = PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml").asByteSource();
+    ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource);
+    final StreamSource src = new StreamSource(DocBookTransformerTests.class
+        .getResource("Hello world A4.fo").toString());
+    byte[] pdf = t.toBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("Hello"));
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource
+  void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
+    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+    ByteSource configSource = PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config Incorrect.xml").asByteSource();
+    assertThrows(IllegalArgumentException.class, () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource));
+  }
 
   @CartesianTest
   void testSimpleArticleRaw(
@@ -147,57 +187,36 @@ public class FoToPdfTransformerTests {
       }
     }
   }
+
+  @ParameterizedTest
+  @EnumSource
+  void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
+    URL input = DocBookTransformerTests.class.getResource("Hello world A4.fo");
+    final StreamSource src = new StreamSource(input.toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base).toStream(src, pdfStream);
+      final byte[] pdf = pdfStream.toByteArray();
+      assertTrue(pdf.length >= 10);
+      try (PDDocument document = PDDocument.load(pdf)) {
+        final int numberOfPages = document.getNumberOfPages();
+        assertEquals(1, numberOfPages);
+        final PDFTextStripper stripper = new PDFTextStripper();
+        final String text = stripper.getText(document);
+        assertTrue(text.contains("Hello"));
+      }
+    }
+  }
+
   @Test
-  void testArticleWithPdfDetails() throws Exception {
-    URL input = DocBookTransformerTests.class.getResource("Include PDF complex.fo");
-    final StreamSource source = new StreamSource(input.toString());
-    try (ByteArrayOutputStream destination = new ByteArrayOutputStream()) {
-      URI fopBaseUri = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-      LOGGER.info("Base: {}.", fopBaseUri);
-      TransformerFactory factory = KnownFactory.XALAN.factory();
-      final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
-      final FopFactory fopFactory;
-      try (InputStream configStream = configUrl.openStream()) {
-        fopFactory = FopFactory.newInstance(fopBaseUri, configStream);
-      }
-      final XmlTransformer delegateTransformer = XmlTransformer.usingFactory(factory);
-
-      final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-      // foUserAgent.getEventBroadcaster().addEventListener(new LoggingEventListener());
-
-      final FoEventListener l = new FoEventListener();
-      foUserAgent.getEventBroadcaster().addEventListener(l);
-
-      final Result res;
-      try {
-        final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
-        res = new SAXResult(fop.getDefaultHandler());
-      } catch (FOPException e) {
-        throw new IllegalStateException(e);
-      }
-
-      delegateTransformer.usingEmptyStylesheet().transform(source, res);
-      /*
-       * This duplicates the serious event that will get thrown in the log, but we’d better do that
-       * so that one can see the order of events in the log and thus where the first serious one
-       * happened exactly.
-       */
-      l.logAll();
-      assertEquals(1, l.seriouses().size());
-      Event serious = Iterables.getOnlyElement(l.seriouses());
-      LOGGER.error("First serious event: {}.", EventFormatter.format(serious));
-      Set<String> pKeys = serious.getParams().keySet();
-      LOGGER.error("Keys: {}.", pKeys);
-      String eventGroupID = serious.getEventGroupID();
-      LOGGER.error("Event group ID: {}.", eventGroupID);
-      String eventID = serious.getEventID();
-      String key = Iterables.getOnlyElement(pKeys);
-      RuntimeException value = (RuntimeException) serious.getParam(key);
-      LOGGER.error("Value.", value);
-      // l.seriouses().stream().findFirst().ifPresent(e -> {
-      // throw FoEventListener.asException(e);
-      // });
-      final byte[] pdf = destination.toByteArray();
+  void testArticleWithPdf() throws Exception {
+    URL input = DocBookTransformerTests.class.getResource("Include PDF.fo");
+    final StreamSource src = new StreamSource(input.toString());
+    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
+      URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+      FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base).toStream(src, pdfStream);
+      // TODO check log for font error.
+      final byte[] pdf = pdfStream.toByteArray();
       assertTrue(pdf.length >= 10);
       Files.write(Path.of("Include PDF.pdf"), pdf);
       try (PDDocument document = PDDocument.load(pdf)) {
