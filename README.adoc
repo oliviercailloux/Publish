@@ -17,6 +17,17 @@ The API is _not_ stable. Write to me if you are interested in using this library
 
 mvn -Prelease -DoutputFile=deps.txt org.apache.maven.plugins:maven-dependency-plugin:3.8.0:tree
 
+== Use
+I recommend using the XALAN or SAXON factory; the JDK embedded one fails on
+   *        multiple DocBook stylesheets.
+   * @return a doc book transformer
+   */
+  public static DocBookTransformer usingFactory(TransformerFactory factory) {
+    /*
+     * Note that using a pedantic factory (i.e., failing upon encountering warning messages) is
+     * hopeless, as DocBook spits out messages such as “Making portrait pages on A4 paper
+     * (210mmx297mm)”.
+     
 == DocBook
 
 xslTNG*
@@ -53,3 +64,16 @@ https://tdg.docbook.org/
 
 https://stackoverflow.com/questions/17929158/saxon-doesnt-support-saxonoutput-anymore
 https://saxonica.plan.io/issues/5665
+
+== PDFs
+https://www.princexml.com/forum/topic/1854/inclusion-of-pdf-contents
+https://www.princexml.com/forum/topic/4981/adding-a-pdf-file
+
+== Decision
+I can’t find a satisfactory solution for including PDFs beyond going through FO.
+(Perhaps https://github.com/docbook/xslTNG/issues/121?)
+Thus, I’ll stick with v1 for now.
+Perhaps v2 would work (didn’t check if they support FO) but if going for unsupported XSLT anyway, better stick with the one I know.
+
+Longer term, I’d probably need to generate only HTML and avoid having PDFs to start with.
+Though actually arguable that it’s a good idea to go through HTML for ending up with finely tuned PDFs on fixed size paper.

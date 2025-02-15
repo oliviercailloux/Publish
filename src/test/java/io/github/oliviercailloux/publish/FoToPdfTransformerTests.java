@@ -54,7 +54,7 @@ public class FoToPdfTransformerTests {
   void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
     final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
     ByteSource configSource = PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config Incorrect.xml").asByteSource();
-    assertThrows(IllegalArgumentException.class, () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource));
+    assertThrows(XmlException.class, () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource));
   }
 
   @CartesianTest

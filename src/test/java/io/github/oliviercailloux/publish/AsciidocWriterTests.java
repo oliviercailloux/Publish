@@ -9,6 +9,7 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
+import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import java.io.StringReader;
 import java.net.URL;
 import java.nio.file.Files;
@@ -121,8 +122,8 @@ class AsciidocWriterTests {
           Options.builder().standalone(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
       final String transformed =
-          DocBookTransformer.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
-              .usingFoStylesheet(ImmutableMap.of()).sourceToChars(docBookInput);
+          XmlTransformerFactory.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
+              .usingStylesheet(DocBookStylesheets.Xslt1.TO_FO).sourceToChars(docBookInput);
       assertTrue(transformed.contains("page-height=\"11in\""));
       assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));
     }

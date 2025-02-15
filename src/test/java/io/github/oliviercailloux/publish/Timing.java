@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.io.CharSource;
 import com.google.common.io.MoreFiles;
+import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
@@ -70,7 +70,7 @@ public class Timing {
         Path.of("/home/olivier/Logiciels/fop/mystyle.xsl").toUri().toURL().toString());
     final XmlTransformer toFo =
         // DocBookTransformer.usingFactory(factory).usingStylesheet(myStyle, ImmutableMap.of());
-        DocBookTransformer.usingFactory(factory).usingFoStylesheet(ImmutableMap.of());
+        XmlTransformerFactory.usingFactory(factory).usingStylesheet(DocBookStylesheets.Xslt1.TO_FO);
     final String fo = toFo.charsToChars(docBookSource);
     final StreamSource foSource = new StreamSource(new StringReader(fo));
     final ToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory, L3_DIR.toUri());
@@ -81,8 +81,8 @@ public class Timing {
   void testSimpleArticleToLocalXhtmlXalan() throws Exception {
     final CharSource docBook = charSource("Simple article.dbk");
 
-    final CharSource localStyle = charSource(
-        Path.of("file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl"));
+    final URI localStyle = 
+        URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
 
     final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(localStyle).charsToChars(docBook);

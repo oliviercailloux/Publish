@@ -211,7 +211,7 @@ public class FoToPdfTransformer {
   }
 
   private static FopFactory getFopFactory() {
-    final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
+    final URL configUrl = FoToPdfTransformer.class.getResource("fop-config.xml");
     final URI base = Unchecker.URI_UNCHECKER.getUsing(() -> configUrl.toURI().resolve(".."));
     try {
       return getFopFactory(base, Resources.asByteSource(configUrl));
@@ -221,7 +221,7 @@ public class FoToPdfTransformer {
   }
 
   private static FopFactory getFopFactory(URI fopBaseUri) {
-    final URL configUrl = DocBookTransformer.class.getResource("fop-config.xml");
+    final URL configUrl = FoToPdfTransformer.class.getResource("fop-config.xml");
     try {
       return getFopFactory(fopBaseUri, Resources.asByteSource(configUrl));
     } catch (SAXException | IOException e) {

@@ -93,7 +93,7 @@ class DocBookTransformerTests {
 
     // final CharSource localStyle = charSource("docbook-xsl-ns/xhtml5/docbook.xsl");
     final StreamSource localStyle = new StreamSource(
-        DocBookConformityChecker.class.getResource("docbook-xsl-ns/xhtml5/docbook.xsl").toString());
+        DocBookConformityChecker.class.getResource("docbook-xsl-ns 1.79.2/xhtml5/docbook.xsl").toString());
     // final CharSource localStyle =
     // charSource(DocBookConformityChecker.class.getResource("docbook-xsl-ns/xhtml5/docbook.xsl"));
 
@@ -207,7 +207,7 @@ class DocBookTransformerTests {
     final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
     final StreamSource foStylesheet =
     new StreamSource(
-      DocBookConformityChecker.class.getResource("docbook-xsl-ns/fo/docbook.xsl").toString());
+      DocBookConformityChecker.class.getResource("docbook-xsl-ns 1.79.2/fo/docbook.xsl").toString());
 
     {
       final String fo =
@@ -463,10 +463,9 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlXalan() throws Exception {
     final CharSource docBook = charSource("Simple article.dbk");
-    /*
-     * new StreamSource(
-     * "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl")
-     */
+    //     StreamSource src = new StreamSource(
+    // "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
+    
     final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
         .charsToChars(docBook);
@@ -527,7 +526,7 @@ class DocBookTransformerTests {
             .charsToChars(docBook));
     final String reason = xmlExc.getCause().getMessage();
     assertEquals(
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>Can't make chunks with Saxonica's processor.",
+        "Processing terminated by xsl:message at line 239 in chunker.xsl",
         reason);
   }
 
