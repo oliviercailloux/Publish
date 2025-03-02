@@ -9,11 +9,10 @@ image:http://www.javadoc.io/badge/{groupId}/{artifactId}.svg["Javadocs", link="h
 
 Various utilities related to publishing documents in various formats: AsciiDoc, DocBook and XML.
 
-This library focuses on code and API quality, not on performance. Open an issue if this creates a problem for some of your use cases.
+This library focuses on code and API quality, not on performance. Please open an issue if this creates a problem for any of your use cases.
+I will make reasonable efforts to respond promptly and fix bugs (or at least document them).
 
-This project adheres to the https://github.com/classgraph/classgraph/blob/master/Zero-Bugs-Commitment.md[Zero Bugs Commitment].
-
-The API is _not_ stable. Write to me if you are interested in using this library and wonder about stabilizing its API, or want more example code.
+The API is _not_ stable. Please contact me if you are interested in using this library and wonder about stabilizing its API, or if you would like more example code.
 
 mvn -Prelease -DoutputFile=deps.txt org.apache.maven.plugins:maven-dependency-plugin:3.8.0:tree
 
