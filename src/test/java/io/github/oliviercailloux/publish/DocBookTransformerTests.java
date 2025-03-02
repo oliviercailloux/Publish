@@ -14,13 +14,17 @@ import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
+import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory.OutputProperties;
 import io.github.oliviercailloux.testutils.OutputCapturer;
+import java.io.FileNotFoundException;
 import java.io.StringReader;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.stream.StreamSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,8 +67,7 @@ class DocBookTransformerTests {
     final OutputCapturer capturer = OutputCapturer.capturer();
     capturer.capture();
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class,
-        () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_HTML));
+    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_HTML));
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
     assertTrue(capturer.err().lines().count() > 100);
@@ -75,8 +78,7 @@ class DocBookTransformerTests {
     final OutputCapturer capturer = OutputCapturer.capturer();
     capturer.capture();
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class,
-        () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML));
+    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML));
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
     assertTrue(capturer.err().lines().count() > 100);
@@ -91,14 +93,12 @@ class DocBookTransformerTests {
   void testSimpleArticleToCpXhtmlXalan() throws Exception {
     final CharSource docBook = charSource("Simple article.dbk");
 
-    // final CharSource localStyle = charSource("docbook-xsl-ns/xhtml5/docbook.xsl");
-    final StreamSource localStyle = new StreamSource(
-        DocBookConformityChecker.class.getResource("docbook-xsl-ns 1.79.2/xhtml5/docbook.xsl").toString());
-    // final CharSource localStyle =
-    // charSource(DocBookConformityChecker.class.getResource("docbook-xsl-ns/xhtml5/docbook.xsl"));
-
-    // LOGGER.debug("Using style {}.",
-    // Files.readString(Path.of(new URL(localStyle.getSystemId()).toURI())));
+    // final URI localStyle =
+    // URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
+    final URI localStyle = DocBookConformityChecker.class
+        .getResource("docbook-xsl-ns 1.79.2/xhtml5/docbook.xsl").toURI();
+    // final URI localStyle =
+    // URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
 
     final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(localStyle, ImmutableMap.of(), OutputProperties.indent())
@@ -111,6 +111,22 @@ class DocBookTransformerTests {
         documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
+  }
+
+  @Test
+  void testSimpleArticleToCpXhtmlXalanFailsForWritePermission() throws Exception {
+    final CharSource docBook = charSource("Simple article.dbk");
+
+    final URI localStyle =
+        URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
+
+    XmlTransformer transformer = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
+        .usingStylesheet(localStyle, ImmutableMap.of(), OutputProperties.indent());
+        XmlException thrown =
+        assertThrows(XmlException.class, () -> transformer.charsToChars(docBook));
+    TransformerException cause = (TransformerException) thrown.getCause();
+    FileNotFoundException subcause = (FileNotFoundException) cause.getCause();
+    assertTrue(subcause.getMessage().contains("Permission "), subcause.getMessage());
   }
 
   private static String withoutIds(String original) {
@@ -205,9 +221,8 @@ class DocBookTransformerTests {
     final CharSource docBook = charSource("Simple article.dbk");
 
     final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-    new StreamSource(
-      DocBookConformityChecker.class.getResource("docbook-xsl-ns 1.79.2/fo/docbook.xsl").toString());
+    final StreamSource foStylesheet = new StreamSource(DocBookConformityChecker.class
+        .getResource("docbook-xsl-ns 1.79.2/fo/docbook.xsl").toString());
 
     {
       final String fo =
@@ -453,8 +468,7 @@ class DocBookTransformerTests {
     final StreamSource foStylesheet =
         new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
 
-    helper.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO, ImmutableMap.of())
-        .charsToChars(docBook);
+    helper.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO, ImmutableMap.of()).charsToChars(docBook);
     assertDoesNotThrow(
         () -> helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
             .charsToChars(docBook));
@@ -463,9 +477,9 @@ class DocBookTransformerTests {
   @Test
   void testSimpleArticleToXhtmlXalan() throws Exception {
     final CharSource docBook = charSource("Simple article.dbk");
-    //     StreamSource src = new StreamSource(
+    // StreamSource src = new StreamSource(
     // "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
-    
+
     final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
         .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
         .charsToChars(docBook);
@@ -510,10 +524,12 @@ class DocBookTransformerTests {
             .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
             .charsToChars(docBook));
     final String reason = xmlExc.getCause().getMessage();
-    assertEquals(
-        "Processing terminated by xsl:message at line 239 in chunker.xsl",
-        reason);
-    /* Indeed, logs “Can't make chunks with Saxonica's processor”, and https://cdn.docbook.org/release/xsl/current/xhtml/chunker.xsl has xsl:message terminate="yes" with that message. */
+    assertEquals("Processing terminated by xsl:message at line 239 in chunker.xsl", reason);
+    /*
+     * Indeed, logs “Can't make chunks with Saxonica's processor”, and
+     * https://cdn.docbook.org/release/xsl/current/xhtml/chunker.xsl has xsl:message terminate="yes"
+     * with that message.
+     */
   }
 
   @Test
@@ -525,9 +541,7 @@ class DocBookTransformerTests {
                 ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css"))
             .charsToChars(docBook));
     final String reason = xmlExc.getCause().getMessage();
-    assertEquals(
-        "Processing terminated by xsl:message at line 239 in chunker.xsl",
-        reason);
+    assertEquals("Processing terminated by xsl:message at line 239 in chunker.xsl", reason);
   }
 
   @Test
