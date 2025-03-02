@@ -9,25 +9,16 @@ import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
-import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
+import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import javax.xml.transform.Result;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
-import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
-import org.apache.fop.events.EventFormatter;
-import org.apache.fop.events.EventListener;
-import org.apache.fop.fo.FOTreeBuilder;
 import org.apache.fop.render.RendererFactory;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -76,7 +67,7 @@ public class FoToPdfTransformerTests {
     ByteSource configSource =
         PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml")
             .asByteSource();
-    ToBytesTransformer t =
+    XmlToBytesTransformer t =
         FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource);
     final StreamSource src =
         new StreamSource(DocBookTransformerTests.class.getResource("Hello world A4.fo").toString());
@@ -85,7 +76,7 @@ public class FoToPdfTransformerTests {
      * rendererFactory.createFOEventHandler. See #testConfigVerkeerdManual.
      */
     LOGGER.info("Converting.");
-    byte[] pdf = t.toBytes(src);
+    byte[] pdf = t.sourceToBytes(src);
     LOGGER.info("Converted.");
     assertTrue(pdf.length >= 10);
   }
@@ -98,7 +89,10 @@ public class FoToPdfTransformerTests {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       final PDFTextStripper stripper = new PDFTextStripper();
-      /* Logs warning: “Using fallback font LiberationSans for base font Symbol” (and one more). */
+      /*
+       * Logs warning: “Using fallback font LiberationSans for base font Symbol” (and one more). I
+       * don’t know how to avoid this (did not look much, though).
+       */
       LOGGER.info("Reading text.");
       final String text = stripper.getText(document);
       LOGGER.info("Read text.");
@@ -122,17 +116,14 @@ public class FoToPdfTransformerTests {
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Simple article using %s raw.fo".formatted(factoryDocBookToFo)).toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-      // pdf);
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals(null, document.getDocumentInformation().getTitle());
-      }
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
+    // pdf);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      assertEquals(null, document.getDocumentInformation().getTitle());
     }
   }
 
@@ -140,17 +131,15 @@ public class FoToPdfTransformerTests {
   void testSimpleArticleRawSS() throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Simple article using %s raw.fo".formatted(KnownFactory.SAXON)).toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(KnownFactory.SAXON.factory()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-      // pdf);
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals(null, document.getDocumentInformation().getTitle());
-      }
+    final byte[] pdf =
+        FoToPdfTransformer.usingFactory(KnownFactory.SAXON.factory()).sourceToBytes(src);
+    // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
+    // pdf);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      assertEquals(null, document.getDocumentInformation().getTitle());
     }
   }
 
@@ -160,15 +149,12 @@ public class FoToPdfTransformerTests {
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)).toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My Article", document.getDocumentInformation().getTitle());
-      }
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      assertEquals("My Article", document.getDocumentInformation().getTitle());
     }
   }
 
@@ -179,13 +165,11 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-      final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
-      final Throwable cause = e.getCause();
-      assertEquals(TransformerException.class, cause.getClass());
-      assertTrue(cause.getMessage().contains("LineBreaking"));
-    }
+    final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final Throwable cause = e.getCause();
+    assertEquals(TransformerException.class, cause.getClass());
+    assertTrue(cause.getMessage().contains("LineBreaking"));
   }
 
   @CartesianTest
@@ -195,15 +179,12 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Article with small image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My Article", document.getDocumentInformation().getTitle());
-      }
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      assertEquals("My Article", document.getDocumentInformation().getTitle());
     }
   }
 
@@ -215,13 +196,11 @@ public class FoToPdfTransformerTests {
         .getResource(
             "Article with non existing image using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-      final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
-      final Throwable cause = e.getCause();
-      assertEquals(TransformerException.class, cause.getClass());
-      assertEquals(FileNotFoundException.class, cause.getCause().getClass());
-    }
+    final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final Throwable cause = e.getCause();
+    assertEquals(TransformerException.class, cause.getClass());
+    assertEquals(FileNotFoundException.class, cause.getCause().getClass());
   }
 
   /**
@@ -236,13 +215,11 @@ public class FoToPdfTransformerTests {
     final StreamSource src = new StreamSource(DocBookTransformerTests.class
         .getResource("Howto shortened using %s styled.fo".formatted(factoryDocBookToFo))
         .toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final ToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-      final XmlException e = assertThrows(XmlException.class, () -> t.toStream(src, pdfStream));
-      final Throwable cause = e.getCause();
-      assertEquals(TransformerException.class, cause.getClass());
-      assertTrue(cause.getMessage().contains("LineBreaking"));
-    }
+    final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final Throwable cause = e.getCause();
+    assertEquals(TransformerException.class, cause.getClass());
+    assertTrue(cause.getMessage().contains("LineBreaking"));
   }
 
   @ParameterizedTest
@@ -250,18 +227,15 @@ public class FoToPdfTransformerTests {
   void testOverlyLongLineHyphenates(KnownFactory factoryFoToPdf) throws Exception {
     final StreamSource src = new StreamSource(
         DocBookTransformerTests.class.getResource("Overly long line.fo").toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        assertEquals("My overly long line", document.getDocumentInformation().getTitle());
-        final PDFTextStripper stripper = new PDFTextStripper();
-        final String text = stripper.getText(document);
-        assertTrue(text.contains("incomprehensibil-\n" + "ities"));
-      }
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      assertEquals("My overly long line", document.getDocumentInformation().getTitle());
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("incomprehensibil-\n" + "ities"));
     }
   }
 
@@ -270,18 +244,16 @@ public class FoToPdfTransformerTests {
   void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
     URL input = DocBookTransformerTests.class.getResource("Hello world A4.fo");
     final StreamSource src = new StreamSource(input.toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-      FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base).toStream(src, pdfStream);
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        final PDFTextStripper stripper = new PDFTextStripper();
-        final String text = stripper.getText(document);
-        assertTrue(text.contains("Hello"));
-      }
+    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+    final byte[] pdf =
+        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base).sourceToBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("Hello"));
     }
   }
 
@@ -289,20 +261,16 @@ public class FoToPdfTransformerTests {
   void testArticleWithPdf() throws Exception {
     URL input = DocBookTransformerTests.class.getResource("Include PDF.fo");
     final StreamSource src = new StreamSource(input.toString());
-    try (ByteArrayOutputStream pdfStream = new ByteArrayOutputStream()) {
-      URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-      FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base).toStream(src, pdfStream);
-      // TODO check log for font error.
-      final byte[] pdf = pdfStream.toByteArray();
-      assertTrue(pdf.length >= 10);
-      Files.write(Path.of("Include PDF.pdf"), pdf);
-      try (PDDocument document = PDDocument.load(pdf)) {
-        final int numberOfPages = document.getNumberOfPages();
-        assertEquals(1, numberOfPages);
-        final PDFTextStripper stripper = new PDFTextStripper();
-        final String text = stripper.getText(document);
-        assertTrue(text.contains("Hello"));
-      }
+    URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
+    final byte[] pdf =
+        FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base).sourceToBytes(src);
+    assertTrue(pdf.length >= 10);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("Hello"));
     }
   }
 }

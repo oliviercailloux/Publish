@@ -1,17 +1,9 @@
 package io.github.oliviercailloux.publish;
 
-import static io.github.oliviercailloux.publish.Resourcer.charSource;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.MoreCollectors;
 import com.google.common.io.CharSource;
 import com.google.common.io.MoreFiles;
-import io.github.oliviercailloux.jaris.io.PathUtils;
-import io.github.oliviercailloux.jaris.xml.DomHelper;
-import io.github.oliviercailloux.jaris.xml.KnownFactory;
+import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory.OutputProperties;
@@ -26,10 +18,8 @@ import javax.xml.transform.stream.StreamSource;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.Options;
 import org.asciidoctor.SafeMode;
-import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Element;
 
 public class Timing {
   @SuppressWarnings("unused")
@@ -74,7 +64,7 @@ public class Timing {
         // XmlTransformerFactory.usingFactory(factory).usingStylesheet(DocBookStylesheets.Xslt1.TO_FO);
     final String fo = toFo.charsToChars(docBookSource);
     final StreamSource foSource = new StreamSource(new StringReader(fo));
-    final ToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory, L3_DIR.toUri());
-    toPdf.toSink(foSource, MoreFiles.asByteSink(L3_DIR.resolve("Lecture notes.pdf")));
+    final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory, L3_DIR.toUri());
+    toPdf.sourceToBytes(foSource, MoreFiles.asByteSink(L3_DIR.resolve("Lecture notes.pdf")));
   }
 }

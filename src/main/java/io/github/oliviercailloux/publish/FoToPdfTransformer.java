@@ -11,6 +11,7 @@ import com.google.common.io.ByteSource;
 import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.exceptions.Unchecker;
 import io.github.oliviercailloux.jaris.xml.XmlException;
+import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -25,6 +26,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
+import javax.xml.transform.stream.StreamResult;
 import org.apache.fop.apps.FOPException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopConfParser;
@@ -120,7 +122,7 @@ public class FoToPdfTransformer {
     }
   }
 
-  private static class FoToBytesTransformer implements ToBytesTransformer {
+  private static class FoToBytesTransformer implements XmlToBytesTransformer {
     private final FopFactory fopFactory;
     private final XmlTransformerFactory delegateTransformer;
 
@@ -130,17 +132,22 @@ public class FoToPdfTransformer {
     }
 
     @Override
-    public void toStream(Source source, OutputStream destination) throws XmlException {
+    public void sourceToResult(Source source, Result result) throws XmlException {
+      checkArgument(result instanceof StreamResult);
+      final StreamResult streamResult = (StreamResult) result;
+
       final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
 
       final FoEventListener l = new FoEventListener();
       foUserAgent.getEventBroadcaster().addEventListener(l);
 
       final Result res;
-      try {
-        res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, destination));
+      try (OutputStream out = streamResult.getOutputStream()) {
+        res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, out));
       } catch (FOPException e) {
         throw new IllegalStateException(e);
+      } catch (IOException e) {
+        throw new XmlException(e);
       }
 
       delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
@@ -158,7 +165,7 @@ public class FoToPdfTransformer {
     }
   }
 
-  public static ToBytesTransformer usingFactory(TransformerFactory factory) {
+  public static XmlToBytesTransformer usingFactory(TransformerFactory factory) {
     final FopFactory fopFactory = getFopFactory();
     final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
 
@@ -169,7 +176,7 @@ public class FoToPdfTransformer {
    * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @return a transformer
    */
-  public static ToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri) {
+  public static XmlToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri) {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
     final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
 
@@ -180,7 +187,7 @@ public class FoToPdfTransformer {
    * @param fopBaseUri the absolute base URI used by FOP to resolve resource URIs against
    * @return a transformer
    */
-  public static ToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri,
+  public static XmlToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri,
       ByteSource config) throws XmlException, IOException {
     FopFactory fopFactory;
     try {
@@ -193,7 +200,7 @@ public class FoToPdfTransformer {
     return new FoToBytesTransformer(fopFactory, transformer);
   }
 
-  public static ToBytesTransformer usingFactory(TransformerFactory factory, FopConfParser config)
+  public static XmlToBytesTransformer usingFactory(TransformerFactory factory, FopConfParser config)
       throws XmlException {
     FopFactory fopFactory = getFopFactory(config);
     final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
