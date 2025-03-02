@@ -20,23 +20,11 @@
       java.base/java.io=ALL-UNNAMED</argLine>
   </properties>
 
-  <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.3.1</version>
-        <configuration>
-          <failOnWarnings>false</failOnWarnings>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-
   <dependencies>
     <dependency>
       <groupId>io.github.oliviercailloux</groupId>
       <artifactId>jaris</artifactId>
-      <version>0.0.35-SNAPSHOT</version>
+      <version>0.0.35</version>
     </dependency>
     <dependency>
       <groupId>org.asciidoctor</groupId>
@@ -46,22 +34,7 @@
     <dependency>
       <groupId>org.relaxng</groupId>
       <artifactId>jing</artifactId>
-      <version>20220510</version>
-      <exclusions>
-        <exclusion>
-          <groupId>xml-apis</groupId>
-          <artifactId>xml-apis</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>xerces</groupId>
-          <artifactId>xercesImpl</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>net.sf.saxon</groupId>
-      <artifactId>Saxon-HE</artifactId>
-      <version>12.5</version>
+      <version>20241231</version>
     </dependency>
     <dependency>
       <groupId>jakarta.xml.bind</groupId>
@@ -97,14 +70,12 @@
     <dependency>
       <groupId>xalan</groupId>
       <artifactId>xalan</artifactId>
-      <version>2.7.2</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>xml-apis</groupId>
-          <artifactId>xml-apis</artifactId>
-        </exclusion>
-      </exclusions>
+      <version>2.7.3</version>
+    </dependency>
+    <dependency>
+      <groupId>xalan</groupId>
+      <artifactId>serializer</artifactId>
+      <version>2.7.3</version>
     </dependency>
 
     <dependency>
@@ -155,6 +126,12 @@
           <artifactId>commons-logging</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.saxon</groupId>
+      <artifactId>Saxon-HE</artifactId>
+      <version>12.5</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>
