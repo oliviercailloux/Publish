@@ -1,11 +1,11 @@
 package io.github.oliviercailloux.publish;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.io.ByteSource;
+import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
@@ -28,7 +28,6 @@ import org.apache.fop.apps.FopFactory;
 import org.apache.fop.events.EventFormatter;
 import org.apache.fop.events.EventListener;
 import org.apache.fop.fo.FOTreeBuilder;
-import org.apache.fop.fonts.substitute.FontSubstitutions;
 import org.apache.fop.render.RendererFactory;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -39,117 +38,41 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXParseException;
 
 public class FoToPdfTransformerTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(FoToPdfTransformerTests.class);
 
+  /* This logs an error which I apparently cannot access. */
   @Test
   void testConfigVerkeerdManual() throws Exception {
     final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    // TODO should crash but just logs the error, it does not go through the listener.
     ByteSource config =
         PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml")
             .asByteSource();
-    TransformerFactory factory = KnownFactory.XALAN.factory();
-    URI fopBaseUri = base;
     FopFactory fopFactory;
-    try (InputStream configStream = config.openBufferedStream()) {
-      fopFactory = FopFactory.newInstance(fopBaseUri, configStream);
-    }
-    checkArgument(fopFactory.validateUserConfigStrictly());
-    checkArgument(fopFactory.validateStrictly());
-    final XmlTransformerFactory delegateTransformer =
-        XmlTransformerFactory.pedanticTransformer(factory);
-
-    final StreamSource source =
-        new StreamSource(DocBookTransformerTests.class.getResource("Hello world A4.fo").toString());
-    byte[] pdf;
-
-    try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
-      LOGGER.info("Creating user agent.");
+    try (InputStream configStream = config.openBufferedStream();
+        ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+      fopFactory = FopFactory.newInstance(base, configStream);
       final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-      // foUserAgent.setFOEventHandlerOverride(new FOEventHandler() {
-
-      // });
-      LOGGER.info("Created user agent.");
-      // foUserAgent.getEventBroadcaster().addEventListener(new LoggingEventListener());
-
-      final EventListener l = e -> LOGGER.warn("Event: {}.", EventFormatter.format(e));
-      LOGGER.info("Listening to FOP events.");
-      foUserAgent.getEventBroadcaster().addEventListener(l);
-
-      final Result res;
-      try {
-        LOGGER.info("Creating FOP.");
-        // final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
-        // res = new SAXResult(fop.getDefaultHandler());
-        String outputFormat = MimeConstants.MIME_PDF;
-        FontSubstitutions f = fopFactory.getFontManager().getFontSubstitutions();
-        foUserAgent.getFontManager().setFontSubstitutions(new FontSubstitutions() {
-          @Override
-          public void adjustFontInfo(FontInfo fontInfo) {
-            LOGGER.info("Adjusting font info.");
-            f.adjustFontInfo(fontInfo);
-          }
-        });
-        RendererFactory rendererFactory = foUserAgent.getRendererFactory();
-        LOGGER.info("Getting.");
-        rendererFactory.getFOEventHandlerMaker(outputFormat);
-        LOGGER.info("Creating event handler.");
-        rendererFactory.createFOEventHandler(foUserAgent, outputFormat, stream);
-        // foUserAgent.getRendererFactory().cre
-        //       this.renderer = userAgent.getRendererFactory().createRenderer(
-          // userAgent, outputFormat);
-
-          // try {
-          //     renderer.setupFontInfo(fontInfo);
-  
-        LOGGER.info("Created event handler.");
-        FOTreeBuilder builder = new FOTreeBuilder(outputFormat, foUserAgent, stream) {
-          @Override
-          public void warning(SAXParseException e) {
-            LOGGER.warn(e.getLocalizedMessage());
-          }
-
-          @Override
-          public void error(SAXParseException e) {
-            LOGGER.warn(e.getLocalizedMessage());
-          }
-
-          @Override
-          public void fatalError(SAXParseException e) {
-            LOGGER.warn(e.getLocalizedMessage());
-          }
-        };
-        LOGGER.info("Creating SAX result.");
-        res = new SAXResult(builder);
-        LOGGER.info("Created SAX result.");
-      } catch (FOPException e) {
-        throw new IllegalStateException(e);
-      }
-
-      LOGGER.info("Transforming.");
-      delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
-      LOGGER.info("Transformed.");
-      pdf = stream.toByteArray();
+      RendererFactory rendererFactory = foUserAgent.getRendererFactory();
+      LOGGER.info("Creating event handler.");
+      /*
+       * This logs an error about font substitution. The corresponding code is in FontSubstitutions.
+       * It seems that it cannot be intercepted. The closest I gest is to use
+       * foUserAgent.getFontManager().setFontSubstitutions, but there is no access to the current
+       * one to delegate to it: FontManager#getFontSubstitutions is protected.
+       */
+      rendererFactory.createFOEventHandler(foUserAgent, MimeConstants.MIME_PDF, stream);
+      LOGGER.info("Created event handler.");
     }
-    assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
-      final PDFTextStripper stripper = new PDFTextStripper();
-      final String text = stripper.getText(document);
-      assertTrue(text.contains("Hello"));
-    }
+
   }
 
   @ParameterizedTest
   @EnumSource(names = {"XALAN"})
   void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
     final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    // TODO should crash but just logs the error, it does not go through the listener.
     ByteSource configSource =
         PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml")
             .asByteSource();
@@ -157,13 +80,28 @@ public class FoToPdfTransformerTests {
         FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource);
     final StreamSource src =
         new StreamSource(DocBookTransformerTests.class.getResource("Hello world A4.fo").toString());
+    /*
+     * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
+     * rendererFactory.createFOEventHandler. See #testConfigVerkeerdManual.
+     */
+    LOGGER.info("Converting.");
     byte[] pdf = t.toBytes(src);
+    LOGGER.info("Converted.");
     assertTrue(pdf.length >= 10);
+  }
+
+  @Test
+  void testReadPdf() throws Exception {
+    byte[] pdf = Resources
+        .asByteSource(FoToPdfTransformerTests.class.getResource("Hello world A4.pdf")).read();
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       final PDFTextStripper stripper = new PDFTextStripper();
+      /* Logs warning: “Using fallback font LiberationSans for base font Symbol” (and one more). */
+      LOGGER.info("Reading text.");
       final String text = stripper.getText(document);
+      LOGGER.info("Read text.");
       assertTrue(text.contains("Hello"));
     }
   }

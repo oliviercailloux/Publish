@@ -132,32 +132,24 @@ public class FoToPdfTransformer {
     @Override
     public void toStream(Source source, OutputStream destination) throws XmlException {
       final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-      // foUserAgent.getEventBroadcaster().addEventListener(new LoggingEventListener());
 
       final FoEventListener l = new FoEventListener();
-      LOGGER.info("Listening to FOP events.");
       foUserAgent.getEventBroadcaster().addEventListener(l);
-      
+
       final Result res;
       try {
-        LOGGER.info("Creating FOP.");
-        // final Fop fop = fopFactory.newFop(MimeConstants.MIME_PDF, foUserAgent, destination);
-        LOGGER.info("Creating SAX result.");
-        // res = new SAXResult(fop.getDefaultHandler());
         res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, destination));
       } catch (FOPException e) {
         throw new IllegalStateException(e);
       }
-      
-      LOGGER.info("Transforming.");
+
       delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
-      LOGGER.info("Transformed.");
       /*
        * This duplicates the serious event that will get thrown in the log, but we’d better do that
        * so that one can see the order of events in the log and thus where the first serious one
        * happened exactly.
        */
-      LOGGER.info("Got {} serious and {} not serious events.", l.seriouses().size(),
+      LOGGER.debug("Got {} serious and {} not serious events.", l.seriouses().size(),
           l.notSeriouses().size());
       l.logAll();
       l.seriouses().stream().findFirst().ifPresent(e -> {
