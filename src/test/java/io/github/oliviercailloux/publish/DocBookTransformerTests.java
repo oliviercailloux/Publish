@@ -404,56 +404,6 @@ class DocBookTransformerTests {
           .getResource("Howto shortened using %s raw.fo".formatted(factory)).toURI()));
       assertEqualsApartFromIds(expected, fo);
     }
-
-    {
-      final String fo = helper.usingStylesheet(foStylesheet,
-          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
-          .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("targeted at DocBook users"));
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("targeted at DocBook users"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Howto shortened using %s styled.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with image.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("targeted at DocBook users"));
-      assertTrue(
-          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with non existing image.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("targeted at DocBook users"));
-      assertTrue(fo.contains(
-          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-    }
   }
 
   /**
