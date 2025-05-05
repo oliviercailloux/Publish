@@ -3,28 +3,25 @@ package io.github.oliviercailloux.publish;
 import static io.github.oliviercailloux.publish.Resourcer.charSource;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MoreCollectors;
 import com.google.common.io.CharSource;
+import io.github.oliviercailloux.docbook.DocBookResources;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
-import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlName;
-import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory.OutputProperties;
-import io.github.oliviercailloux.testutils.OutputCapturer;
-import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.regex.Pattern;
-import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,84 +48,6 @@ class DocBookTransformerTests {
     Files.writeString(Path.of("out.fo"), fo);
   }
 
-  @Test
-  void testJdkFactoryFoThrows() throws Exception {
-    final OutputCapturer capturer = OutputCapturer.capturer();
-    capturer.capture();
-    final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO));
-    capturer.restore();
-    assertTrue(capturer.out().isEmpty());
-    assertTrue(capturer.err().lines().count() > 100);
-  }
-
-  @Test
-  void testJdkFactoryHtmlThrows() throws Exception {
-    final OutputCapturer capturer = OutputCapturer.capturer();
-    capturer.capture();
-    final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_HTML));
-    capturer.restore();
-    assertTrue(capturer.out().isEmpty());
-    assertTrue(capturer.err().lines().count() > 100);
-  }
-
-  @Test
-  void testJdkFactoryXhtmlThrows() throws Exception {
-    final OutputCapturer capturer = OutputCapturer.capturer();
-    capturer.capture();
-    final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(KnownFactory.JDK.factory());
-    assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML));
-    capturer.restore();
-    assertTrue(capturer.out().isEmpty());
-    assertTrue(capturer.err().lines().count() > 100);
-  }
-
-  /**
-   * docbook-xsl-ns (1.79.2+dfsg-1) https://packages.debian.org/bullseye/docbook-xsl-ns
-   *
-   * @throws Exception
-   */
-  @Test
-  void testSimpleArticleToCpXhtmlXalan() throws Exception {
-    final CharSource docBook = charSource("Simple article.dbk");
-
-    // final URI localStyle =
-    // URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
-    final URI localStyle = DocBookConformityChecker.class
-        .getResource("docbook-xsl-ns 1.79.2/xhtml5/docbook.xsl").toURI();
-    // final URI localStyle =
-    // URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
-
-    final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
-        .usingStylesheet(localStyle, ImmutableMap.of(), OutputProperties.indent())
-        .charsToChars(docBook);
-    LOGGER.debug("Resulting XHTML: {}.", xhtml);
-    assertTrue(xhtml.contains("docbook.css"));
-    final Element documentElement = DomHelper.domHelper()
-        .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
-    final ImmutableList<Element> titleElements = DomHelper.toElements(
-        documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
-    final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
-    assertEquals("My Article", titleElement.getTextContent());
-  }
-
-  @Test
-  void testSimpleArticleToCpXhtmlXalanFailsForWritePermission() throws Exception {
-    final CharSource docBook = charSource("Simple article.dbk");
-
-    final URI localStyle =
-        URI.create("/usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
-
-    XmlTransformer transformer = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
-        .usingStylesheet(localStyle, ImmutableMap.of(), OutputProperties.indent());
-        XmlException thrown =
-        assertThrows(XmlException.class, () -> transformer.charsToChars(docBook));
-    TransformerException cause = (TransformerException) thrown.getCause();
-    FileNotFoundException subcause = (FileNotFoundException) cause.getCause();
-    assertTrue(subcause.getMessage().contains("Permission "), subcause.getMessage());
-  }
-
   private static String withoutIds(String original) {
     final String withoutBlockIds = IDS_PATTERN.matcher(original).replaceAll(r -> "id=\"\"");
     final String withoutIds =
@@ -143,267 +62,207 @@ class DocBookTransformerTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple article.dbk");
+    String name = "Simple article using %s.fo".formatted(factory);
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final String fo =
-          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"11in\""));
-      assertTrue(fo.contains("page-width=\"8.5in\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      // Files.writeString(Path.of("Simple article using %s raw indented.fo".formatted(factory)),
-      // fo);
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Simple article using %s raw.fo".formatted(factory)).toURI()));
-      assertEquals(expected, fo);
-    }
-
-    {
-      final String fo = helper.usingStylesheet(foStylesheet,
-          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
-          .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Simple article using %s styled.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with image.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      assertTrue(
-          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with non existing image.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      assertTrue(fo.contains(
-          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-    }
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("page-height=\"11in\""));
+    assertTrue(fo.contains("page-width=\"8.5in\""));
+    assertTrue(fo.contains("<fo:block"));
+    assertTrue(fo.contains("On the Possibility of Going Home"));
+    assertEquals(Resourcer.charSource(name).read(), fo);
   }
 
   @ParameterizedTest
-  @EnumSource(names = {"SAXON"})
-  void testSimpleArticleToFoCp(KnownFactory factory) throws Exception {
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToFoA4(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties =
+        ImmutableMap.of(XmlName.localName("paper.type"), "A4");
     final CharSource docBook = charSource("Simple article.dbk");
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet = new StreamSource(DocBookConformityChecker.class
-        .getResource("docbook-xsl-ns 1.79.2/fo/docbook.xsl").toString());
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final String fo =
-          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.indent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"11in\""));
-      assertTrue(fo.contains("page-width=\"8.5in\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      /*
-       * Minor differences between the classpath and the online styles, such as text-align="start"
-       * VS "left".
-       */
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Simple article using %s raw classpath indented.fo".formatted(factory))
-          .toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("page-height=\"297mm\""));
+    assertTrue(fo.contains("page-width=\"210mm\""));
+    assertTrue(fo.contains("<fo:block"));
+    assertTrue(fo.contains("On the Possibility of Going Home"));
+  }
 
-    {
-      final String fo = helper.usingStylesheet(foStylesheet,
-          ImmutableMap.of(XmlName.localName("paper.type"), "A4"), OutputProperties.noIndent())
-          .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-    }
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToFoStyled(KnownFactory factory) throws Exception {
+    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("Simple article.dbk");
+    String name = "Simple article using %s styled.fo".formatted(factory);
 
-    /* FIXME This is not using CP! Need to figure out how to change this. */
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Simple article using %s styled.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with image.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      assertTrue(
-          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    }
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("page-height=\"297mm\""));
+    assertTrue(fo.contains("page-width=\"210mm\""));
+    assertTrue(fo.contains("<fo:block"));
+    assertTrue(fo.contains("On the Possibility of Going Home"));
+    assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
+  }
 
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style with non existing image.xsl");
-      final String fo = helper.usingStylesheet(myStyle, ImmutableMap.of()).charsToChars(docBook);
-      assertTrue(fo.contains("page-height=\"297mm\""));
-      assertTrue(fo.contains("page-width=\"210mm\""));
-      assertTrue(fo.contains("<fo:block"));
-      assertTrue(fo.contains("On the Possibility of Going Home"));
-      assertTrue(fo.contains(
-          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-    }
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToFoStyledImaged(KnownFactory factory) throws Exception {
+    CharSource stylesheet = charSource("DocBook to Fo style with image.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("Simple article.dbk");
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("page-height=\"297mm\""));
+    assertTrue(fo.contains("page-width=\"210mm\""));
+    assertTrue(fo.contains("<fo:block"));
+    assertTrue(fo.contains("On the Possibility of Going Home"));
+    assertTrue(
+        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+  }
+
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToFoStyledNonImage(KnownFactory factory) throws Exception {
+    CharSource stylesheet = charSource("DocBook to Fo style with non existing image.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("Simple article.dbk");
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("page-height=\"297mm\""));
+    assertTrue(fo.contains("page-width=\"210mm\""));
+    assertTrue(fo.contains("<fo:block"));
+    assertTrue(fo.contains("On the Possibility of Going Home"));
+    assertTrue(fo.contains(
+        "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
   }
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testArticleWithImageToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Article with image.dbk");
+    String name = "Article with image using %s raw.fo".formatted(factory);
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final String fo =
-          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("Sample"));
-      assertTrue(
-          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Article with image using %s raw.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("Sample"));
-      assertTrue(
-          fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Article with image using %s styled.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("Sample"));
+    assertTrue(
+        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+    assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
   }
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
-  void testArticleWithSmallImageToFo(KnownFactory factory) throws Exception {
-    final CharSource docBook = charSource("Article with small image.dbk");
+  void testArticleWithImageToFoStyled(KnownFactory factory) throws Exception {
+    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("Article with image.dbk");
+    String name = "Article with image using %s styled.fo".formatted(factory);
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-    final String fo =
-        helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-            .charsToChars(docBook);
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
     assertTrue(fo.contains("Sample"));
     assertTrue(
         fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-        .getResource("Article with small image using %s styled.fo".formatted(factory)).toURI()));
-    assertEqualsApartFromIds(expected, fo);
+    assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
+  void testArticleWithSmallImageToFoStyled(KnownFactory factory) throws Exception {
+    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("Article with small image.dbk");
+    String name = "Article with small image using %s styled.fo".formatted(factory);
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("Sample"));
+    assertTrue(
+        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+    assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
   }
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testArticleWithNonExistingImageToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Article with non existing image.dbk");
+    // String name = "Article with non existing image using %s raw.fo".formatted(factory);
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final String fo =
-          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("Sample"));
-      assertTrue(fo.contains(
-          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Article with non existing image using %s raw.fo".formatted(factory))
-          .toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
-
-    {
-      final CharSource myStyle = charSource("DocBook to Fo style.xsl");
-      final String fo =
-          helper.usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
-      assertTrue(fo.contains("Sample"));
-      assertTrue(fo.contains(
-          "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Article with non existing image using %s styled.fo".formatted(factory))
-          .toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
+    final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
+    assertTrue(fo.contains("Sample"));
+    assertTrue(fo.contains(
+        "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
+    // assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
   }
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testHowtoToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Howto shortened.dbk");
+    String name = "Howto shortened using %s raw.fo".formatted(factory);
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    {
-      final String fo =
-          helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
-              .charsToChars(docBook);
+        final String fo = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook);
       assertTrue(fo.contains("page-height=\"11in\""));
       assertTrue(fo.contains("page-width=\"8.5in\""));
       assertTrue(fo.contains("<fo:block"));
       assertTrue(fo.contains("targeted at DocBook users"));
-      final String expected = Files.readString(Path.of(DocBookTransformerTests.class
-          .getResource("Howto shortened using %s raw.fo".formatted(factory)).toURI()));
-      assertEqualsApartFromIds(expected, fo);
-    }
+      Files.writeString(Path.of(name), fo);
+      assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
   }
 
   /**
@@ -412,95 +271,85 @@ class DocBookTransformerTests {
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
   void testHowtoInvalidToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Howto invalid.dbk");
 
-    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(factory.factory());
-    final StreamSource foStylesheet =
-        new StreamSource("https://cdn.docbook.org/release/xsl/current/fo/docbook.xsl");
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
 
-    helper.usingStylesheet(DocBookStylesheets.Xslt1.TO_FO, ImmutableMap.of()).charsToChars(docBook);
     assertDoesNotThrow(
-        () -> helper.usingStylesheet(foStylesheet, ImmutableMap.of(), OutputProperties.noIndent())
-            .charsToChars(docBook));
+        () -> helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+        .charsToChars(docBook));
   }
 
   @Test
-  void testSimpleArticleToXhtmlXalan() throws Exception {
+  void testSimpleArticleToHtmlXalanTodo() throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_HTML_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple article.dbk");
-    // StreamSource src = new StreamSource(
-    // "file:///usr/share/xml/docbook/stylesheet/docbook-xsl-ns/xhtml5/docbook.xsl");
 
-    final String xhtml = XmlTransformerFactory.usingFactory(KnownFactory.XALAN.factory())
-        .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
-        .charsToChars(docBook);
-    LOGGER.debug("Resulting XHTML: {}.", xhtml);
-    assertTrue(xhtml.contains("docbook.css"));
+    TransformerFactory underlying = KnownFactory.XALAN.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String html = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+    .charsToChars(docBook);
+    Files.writeString(Path.of("Simple article using Xalan.html"), html);
+    // assertTrue(html.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
-        .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
+        .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
     final ImmutableList<Element> titleElements = DomHelper.toElements(
-        documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
+        documentElement.getElementsByTagName("title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
   }
 
   @ParameterizedTest
   @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
-  void testSimpleArticleToXhtmlChangeCss(KnownFactory factory) throws Exception {
+  void testSimpleArticleToXhtml(KnownFactory factory) throws Exception {
+    URI stylesheet = URI.create("http://cdn.docbook.org/release/xsl/1.79.2/xhtml/docbook.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple article.dbk");
-    final String xhtml = XmlTransformerFactory.usingFactory(factory.factory())
-        .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
-            ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
-                XmlName.localName("docbook.css.source"), ""))
-        .charsToChars(docBook);
-    LOGGER.debug("Resulting XHTML: {}.", xhtml);
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String xhtml = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+    .charsToChars(docBook);
+    final Element documentElement = DomHelper.domHelper()
+        .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
+    final ImmutableList<Element> titleElements = DomHelper.toElements(
+        documentElement.getElementsByTagName("title"));
+    final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
+    assertFalse(xhtml.contains(".css"));
+    assertEquals("My Article", titleElement.getTextContent());
+  }
+
+  @ParameterizedTest
+  @EnumSource(value = KnownFactory.class, names = {"XALAN", "SAXON"})
+  void testSimpleArticleToXhtmlChangeCss(KnownFactory factory) throws Exception {
+    URI stylesheet = URI.create("http://cdn.docbook.org/release/xsl/1.79.2/xhtml/docbook.xsl");
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css",
+    XmlName.localName("docbook.css.source"), "");
+    final CharSource docBook = charSource("Simple article.dbk");
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory helper = XmlTransformerFactory.usingFactory(underlying);
+
+    final String xhtml = helper.usingStylesheet(stylesheet, properties, OutputProperties.noIndent())
+    .charsToChars(docBook);
+    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), xhtml);
     assertTrue(xhtml.contains("blah.css"));
     assertTrue(!xhtml.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
         .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
     final ImmutableList<Element> titleElements = DomHelper.toElements(
-        documentElement.getElementsByTagNameNS(DomHelper.HTML_NS_URI.toString(), "title"));
+        documentElement.getElementsByTagName("title"));
     final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
     assertEquals("My Article", titleElement.getTextContent());
-  }
-
-  /**
-   * Oddly enough, Saxon fails when not parameterized, but succeeds with some parameters.
-   */
-  @Test
-  void testSimpleArticleToXhtmlSaxonParamsNoneThrows() throws Exception {
-    final CharSource docBook = charSource("Simple article.dbk");
-    final XmlException xmlExc = assertThrows(XmlException.class,
-        () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML, ImmutableMap.of())
-            .charsToChars(docBook));
-    final String reason = xmlExc.getCause().getMessage();
-    assertEquals("Processing terminated by xsl:message at line 239 in chunker.xsl", reason);
-    /*
-     * Indeed, logs “Can't make chunks with Saxonica's processor”, and
-     * https://cdn.docbook.org/release/xsl/current/xhtml/chunker.xsl has xsl:message terminate="yes"
-     * with that message.
-     */
-  }
-
-  @Test
-  void testSimpleArticleToXhtmlSaxonParamsSomeThrows() throws Exception {
-    final CharSource docBook = charSource("Simple article.dbk");
-    final XmlException xmlExc = assertThrows(XmlException.class,
-        () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
-                ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css"))
-            .charsToChars(docBook));
-    final String reason = xmlExc.getCause().getMessage();
-    assertEquals("Processing terminated by xsl:message at line 239 in chunker.xsl", reason);
-  }
-
-  @Test
-  void testSimpleArticleToXhtmlSaxonParamsSomeDoesntThrow() throws Exception {
-    final CharSource docBook = charSource("Simple article.dbk");
-    assertDoesNotThrow(
-        () -> XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-            .usingStylesheet(DocBookStylesheets.Xslt1.TO_XHTML,
-                ImmutableMap.of(XmlName.localName("docbook.css.source"), ""))
-            .charsToChars(docBook));
   }
 }

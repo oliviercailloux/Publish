@@ -24,7 +24,12 @@
     <dependency>
       <groupId>io.github.oliviercailloux</groupId>
       <artifactId>jaris</artifactId>
-      <version>0.0.35</version>
+      <version>0.0.37-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.oliviercailloux</groupId>
+      <artifactId>docbook</artifactId>
+      <version>0.0.3</version>
     </dependency>
     <dependency>
       <groupId>org.asciidoctor</groupId>

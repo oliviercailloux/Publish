@@ -11,6 +11,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamSource;
 
+@Deprecated
 public interface DocBookStylesheets {
   public interface Xslt1 {
     public static final URI TO_FO =
