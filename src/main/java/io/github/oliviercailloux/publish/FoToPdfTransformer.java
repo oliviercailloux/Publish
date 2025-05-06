@@ -167,7 +167,7 @@ public class FoToPdfTransformer {
 
   public static XmlToBytesTransformer usingFactory(TransformerFactory factory) {
     final FopFactory fopFactory = getFopFactory();
-    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.usingFactory(factory).pedantic();
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
@@ -178,7 +178,7 @@ public class FoToPdfTransformer {
    */
   public static XmlToBytesTransformer usingFactory(TransformerFactory factory, URI fopBaseUri) {
     final FopFactory fopFactory = getFopFactory(fopBaseUri);
-    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.usingFactory(factory).pedantic();
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
@@ -195,7 +195,7 @@ public class FoToPdfTransformer {
     } catch (SAXException e) {
       throw new XmlException(e);
     }
-    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.usingFactory(factory).pedantic();
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
@@ -203,7 +203,7 @@ public class FoToPdfTransformer {
   public static XmlToBytesTransformer usingFactory(TransformerFactory factory, FopConfParser config)
       throws XmlException {
     FopFactory fopFactory = getFopFactory(config);
-    final XmlTransformerFactory transformer = XmlTransformerFactory.pedanticTransformer(factory);
+    final XmlTransformerFactory transformer = XmlTransformerFactory.usingFactory(factory).pedantic();
 
     return new FoToBytesTransformer(fopFactory, transformer);
   }
