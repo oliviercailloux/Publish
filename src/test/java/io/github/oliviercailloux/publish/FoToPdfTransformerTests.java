@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.google.common.base.Throwables;
 import com.google.common.io.ByteSource;
-import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
@@ -36,11 +36,9 @@ public class FoToPdfTransformerTests {
 
   /* This logs an error which I apparently cannot access. */
   @Test
-  void testConfigVerkeerdManual() throws Exception {
-    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    ByteSource config =
-        PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml")
-            .asByteSource();
+  void testConfigVerkeerdLogError() throws Exception {
+    final URI base = Resourcer.path(".").toUri();
+    ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
     FopFactory fopFactory;
     try (InputStream configStream = config.openBufferedStream();
         ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
@@ -50,41 +48,35 @@ public class FoToPdfTransformerTests {
       LOGGER.info("Creating event handler.");
       /*
        * This logs an error about font substitution. The corresponding code is in FontSubstitutions.
-       * It seems that it cannot be intercepted. The closest I gest is to use
+       * It seems that it cannot be intercepted. The closest I get is to use
        * foUserAgent.getFontManager().setFontSubstitutions, but there is no access to the current
        * one to delegate to it: FontManager#getFontSubstitutions is protected.
        */
       rendererFactory.createFOEventHandler(foUserAgent, MimeConstants.MIME_PDF, stream);
       LOGGER.info("Created event handler.");
     }
-
   }
 
   @ParameterizedTest
-  @EnumSource(names = {"XALAN"})
+  @EnumSource
   void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
-    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    ByteSource configSource =
-        PathUtils.fromResource(FoToPdfTransformerTests.class, "fop-config TheVerkeerdFont.xml")
-            .asByteSource();
+    final URI base = Resourcer.path(".").toUri();
+    ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
     XmlToBytesTransformer t =
-        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource);
-    final StreamSource src =
-        new StreamSource(DocBookTransformerTests.class.getResource("Hello world A4.fo").toString());
+        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, config);
     /*
      * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
-     * rendererFactory.createFOEventHandler. See #testConfigVerkeerdManual.
+     * rendererFactory.createFOEventHandler. See #testConfigVerkeerdLogError.
      */
     LOGGER.info("Converting.");
-    byte[] pdf = t.sourceToBytes(src);
+    byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world A4.fo"));
     LOGGER.info("Converted.");
     assertTrue(pdf.length >= 10);
   }
 
   @Test
   void testReadPdf() throws Exception {
-    byte[] pdf = Resources
-        .asByteSource(FoToPdfTransformerTests.class.getResource("Hello world A4.pdf")).read();
+    byte[] pdf = Resourcer.byteSource("Hello world A4.pdf").read();
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
@@ -103,36 +95,19 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
-    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    ByteSource configSource = PathUtils
-        .fromResource(FoToPdfTransformerTests.class, "fop-config Incorrect.xml").asByteSource();
-    assertThrows(XmlException.class,
-        () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, configSource));
+    final URI base = Resourcer.path(".").toUri();
+    ByteSource config = Resourcer.byteSource("fop-config Incorrect.xml");
+    XmlException e = assertThrows(XmlException.class,
+        () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, config));
+    assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
 
   @CartesianTest
   void testSimpleArticleRaw(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Simple article using %s raw.fo".formatted(factoryDocBookToFo)).toString());
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
-    // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-    // pdf);
-    assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
-      assertEquals(null, document.getDocumentInformation().getTitle());
-    }
-  }
-
-  @Test
-  void testSimpleArticleRawSS() throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Simple article using %s raw.fo".formatted(KnownFactory.SAXON)).toString());
-    final byte[] pdf =
-        FoToPdfTransformer.usingFactory(KnownFactory.SAXON.factory()).sourceToBytes(src);
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
+        Resourcer.byteSource("Simple article using %s.fo".formatted(factoryDocBookToFo)));
     // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
     // pdf);
     assertTrue(pdf.length >= 10);
@@ -147,9 +122,8 @@ public class FoToPdfTransformerTests {
   void testSimpleArticleStyled(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)).toString());
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
+        Resourcer.byteSource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -162,11 +136,9 @@ public class FoToPdfTransformerTests {
   void testArticleWithImageThrows(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))
-        .toString());
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(Resourcer
+        .byteSource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertTrue(cause.getMessage().contains("LineBreaking"));
@@ -176,10 +148,9 @@ public class FoToPdfTransformerTests {
   void testArticleWithSmallImage(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Article with small image using %s styled.fo".formatted(factoryDocBookToFo))
-        .toString());
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    final byte[] pdf =
+        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(Resourcer.byteSource(
+            "Article with small image using %s styled.fo".formatted(factoryDocBookToFo)));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -192,12 +163,10 @@ public class FoToPdfTransformerTests {
   void testArticleWithNonExistingImageThrows(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource(
-            "Article with non existing image using %s styled.fo".formatted(factoryDocBookToFo))
-        .toString());
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final XmlException e =
+        assertThrows(XmlException.class, () -> t.bytesToBytes(Resourcer.byteSource(
+            "Article with non existing image using %s styled.fo".formatted(factoryDocBookToFo))));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertEquals(FileNotFoundException.class, cause.getCause().getClass());
@@ -212,11 +181,9 @@ public class FoToPdfTransformerTests {
   void testHowtoThrows(
       @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(DocBookTransformerTests.class
-        .getResource("Howto shortened using %s styled.fo".formatted(factoryDocBookToFo))
-        .toString());
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.sourceToBytes(src));
+    final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(
+        Resourcer.byteSource("Howto shortened using %s styled.fo".formatted(factoryDocBookToFo))));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertTrue(cause.getMessage().contains("LineBreaking"));
@@ -225,9 +192,8 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testOverlyLongLineHyphenates(KnownFactory factoryFoToPdf) throws Exception {
-    final StreamSource src = new StreamSource(
-        DocBookTransformerTests.class.getResource("Overly long line.fo").toString());
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).sourceToBytes(src);
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("Overly long line.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -242,11 +208,9 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
-    URL input = DocBookTransformerTests.class.getResource("Hello world A4.fo");
-    final StreamSource src = new StreamSource(input.toString());
-    final URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    final byte[] pdf =
-        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base).sourceToBytes(src);
+    final URI base = Resourcer.path(".").toUri();
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base)
+        .bytesToBytes(Resourcer.byteSource("Hello world A4.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -259,11 +223,9 @@ public class FoToPdfTransformerTests {
 
   @Test
   void testArticleWithPdf() throws Exception {
-    URL input = DocBookTransformerTests.class.getResource("Include PDF.fo");
-    final StreamSource src = new StreamSource(input.toString());
-    URI base = PathUtils.fromResource(FoToPdfTransformerTests.class, ".").path().toUri();
-    final byte[] pdf =
-        FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base).sourceToBytes(src);
+    final URI base = Resourcer.path(".").toUri();
+    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base)
+        .bytesToBytes(Resourcer.byteSource("Include PDF.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
