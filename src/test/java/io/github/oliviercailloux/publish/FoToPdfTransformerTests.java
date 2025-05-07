@@ -63,6 +63,7 @@ public class FoToPdfTransformerTests {
     final URI base = Resourcer.path(".").toUri();
     ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
     XmlToBytesTransformer t =
+    //FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
         FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, config);
     /*
      * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
