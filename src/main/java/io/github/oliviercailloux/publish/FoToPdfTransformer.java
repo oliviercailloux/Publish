@@ -8,7 +8,6 @@ import com.google.common.base.VerifyException;
 import com.google.common.io.ByteSource;
 import com.google.common.io.Resources;
 import io.github.oliviercailloux.jaris.exceptions.Unchecker;
-import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
@@ -17,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
+import java.util.function.Supplier;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
@@ -35,27 +35,36 @@ import org.xml.sax.SAXException;
 public class FoToPdfTransformer implements XmlToBytesTransformer {
   @SuppressWarnings("unused")
   static final Logger LOGGER = LoggerFactory.getLogger(FoToPdfTransformer.class);
-  
+
   public static final URL CONFIG_URL =
       Resources.getResource(FoToPdfTransformer.class, "fop-config.xml");
   public static final URI CONFIG_URI = Unchecker.URI_UNCHECKER.getUsing(() -> CONFIG_URL.toURI());
 
   private final XmlTransformerFactory delegateTransformer;
-  private final URI baseUri;
-  private FopConfParser fopConfParser;
+  private Supplier<FopConfParser> fopConfParserSupplier;
   private FopFactory fopFactory;
 
   private static FopConfParser parser(URI baseUri, ByteSource config)
       throws SAXException, IOException {
+        checkArgument(baseUri.isAbsolute());
     try (InputStream configStream = config.openBufferedStream()) {
       return new FopConfParser(configStream, baseUri);
+    }
+  }
+
+  private static FopConfParser internalFopConfParser(URI baseUri) {
+    checkArgument(baseUri.isAbsolute());
+    try {
+      return parser(baseUri, Resources.asByteSource(CONFIG_URL));
+    } catch (SAXException | IOException e) {
+      throw new VerifyException(e);
     }
   }
 
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
-    return new FoToPdfTransformer(transformer, CONFIG_URI, null);
+    return new FoToPdfTransformer(transformer, () -> internalFopConfParser(CONFIG_URI));
   }
 
   /**
@@ -68,15 +77,14 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
       throws SAXException, IOException {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
-    return new FoToPdfTransformer(transformer, CONFIG_URI, parser(CONFIG_URI, config));
+    final FopConfParser fopConfParser = parser(CONFIG_URI, config);
+    return new FoToPdfTransformer(transformer, () -> fopConfParser);
   }
 
-  private FoToPdfTransformer(XmlTransformerFactory delegateTransformer, URI baseUri,
-      FopConfParser fopConfParser) {
+  private FoToPdfTransformer(XmlTransformerFactory delegateTransformer,
+      Supplier<FopConfParser> fopConfParserSupplier) {
     this.delegateTransformer = checkNotNull(delegateTransformer);
-    this.baseUri = checkNotNull(baseUri);
-    checkArgument(baseUri.isAbsolute());
-    this.fopConfParser = fopConfParser;
+    this.fopConfParserSupplier = fopConfParserSupplier;
     if (fopConfParser != null) {
       this.fopFactory = fopConfParser.getFopFactoryBuilder().build();
       checkArgument(fopFactory.validateUserConfigStrictly());
@@ -84,17 +92,6 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     } else {
       this.fopFactory = null;
     }
-  }
-
-  private FopConfParser lazyFopConfParser() {
-    if (fopConfParser == null) {
-      try {
-        fopConfParser = parser(baseUri, Resources.asByteSource(CONFIG_URL));
-      } catch (SAXException | IOException e) {
-        throw new VerifyException(e);
-      }
-    }
-    return fopConfParser;
   }
 
   private FopFactory lazyFactory() {
@@ -107,7 +104,8 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   }
 
   public FoToPdfTransformer withConfig(ByteSource config) throws SAXException, IOException {
-    return new FoToPdfTransformer(delegateTransformer, baseUri, parser(baseUri, config));
+    final FopConfParser fopConfParser = parser(CONFIG_URI, config);
+    return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
   }
 
   /**
@@ -119,12 +117,12 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
    */
   public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") URI baseUri, ByteSource config)
       throws SAXException, IOException {
-    checkArgument(baseUri.isAbsolute());
-    return new FoToPdfTransformer(delegateTransformer, baseUri, parser(baseUri, config));
+        final FopConfParser fopConfParser = parser(baseUri, config);
+        return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
   }
 
   public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") FopConfParser fopConfParser) {
-    return new FoToPdfTransformer(delegateTransformer, baseUri, fopConfParser);
+    return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
   }
 
   @Override
