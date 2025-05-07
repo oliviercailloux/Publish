@@ -41,15 +41,21 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   public static final URI CONFIG_URI = Unchecker.URI_UNCHECKER.getUsing(() -> CONFIG_URL.toURI());
 
   private final XmlTransformerFactory delegateTransformer;
-  private Supplier<FopConfParser> fopConfParserSupplier;
-  private FopFactory fopFactory;
+  private Supplier<FopFactory> fopFactorySupplier;
 
   private static FopConfParser parser(URI baseUri, ByteSource config)
       throws SAXException, IOException {
-        checkArgument(baseUri.isAbsolute());
+    checkArgument(baseUri.isAbsolute());
     try (InputStream configStream = config.openBufferedStream()) {
       return new FopConfParser(configStream, baseUri);
     }
+  }
+
+  private static FopFactory fopFactory(FopConfParser fopConfParser) {
+    FopFactory fopFactory = fopConfParser.getFopFactoryBuilder().build();
+    checkArgument(fopFactory.validateUserConfigStrictly());
+    checkArgument(fopFactory.validateStrictly());
+    return fopFactory;
   }
 
   private static FopConfParser internalFopConfParser(URI baseUri) {
@@ -61,10 +67,17 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     }
   }
 
+  private static FopFactory internalFopFactory(URI baseUri) {
+    FopFactory fopFactory = internalFopConfParser(baseUri).getFopFactoryBuilder().build();
+    verify(fopFactory.validateUserConfigStrictly());
+    verify(fopFactory.validateStrictly());
+    return fopFactory;
+  }
+
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
-    return new FoToPdfTransformer(transformer, () -> internalFopConfParser(CONFIG_URI));
+    return new FoToPdfTransformer(transformer, () -> internalFopFactory(CONFIG_URI));
   }
 
   /**
@@ -78,34 +91,20 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
     final FopConfParser fopConfParser = parser(CONFIG_URI, config);
-    return new FoToPdfTransformer(transformer, () -> fopConfParser);
+    FopFactory fopFactory = fopFactory(fopConfParser);
+    return new FoToPdfTransformer(transformer, () -> fopFactory);
   }
 
   private FoToPdfTransformer(XmlTransformerFactory delegateTransformer,
-      Supplier<FopConfParser> fopConfParserSupplier) {
+      Supplier<FopFactory> fopFactorySupplier) {
     this.delegateTransformer = checkNotNull(delegateTransformer);
-    this.fopConfParserSupplier = fopConfParserSupplier;
-    if (fopConfParser != null) {
-      this.fopFactory = fopConfParser.getFopFactoryBuilder().build();
-      checkArgument(fopFactory.validateUserConfigStrictly());
-      checkArgument(fopFactory.validateStrictly());
-    } else {
-      this.fopFactory = null;
-    }
-  }
-
-  private FopFactory lazyFactory() {
-    if (fopFactory == null) {
-      fopFactory = lazyFopConfParser().getFopFactoryBuilder().build();
-      verify(fopFactory.validateUserConfigStrictly());
-      verify(fopFactory.validateStrictly());
-    }
-    return fopFactory;
+    this.fopFactorySupplier = checkNotNull(fopFactorySupplier);
   }
 
   public FoToPdfTransformer withConfig(ByteSource config) throws SAXException, IOException {
     final FopConfParser fopConfParser = parser(CONFIG_URI, config);
-    return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
+    FopFactory fopFactory = fopFactory(fopConfParser);
+    return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
 
   /**
@@ -117,12 +116,14 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
    */
   public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") URI baseUri, ByteSource config)
       throws SAXException, IOException {
-        final FopConfParser fopConfParser = parser(baseUri, config);
-        return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
+    final FopConfParser fopConfParser = parser(baseUri, config);
+    FopFactory fopFactory = fopFactory(fopConfParser);
+    return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
 
   public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") FopConfParser fopConfParser) {
-    return new FoToPdfTransformer(delegateTransformer, () -> fopConfParser);
+    FopFactory fopFactory = fopFactory(fopConfParser);
+    return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
 
   @Override
@@ -130,7 +131,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     checkArgument(result instanceof StreamResult);
     final StreamResult streamResult = (StreamResult) result;
 
-    final FOUserAgent foUserAgent = lazyFactory().newFOUserAgent();
+    final FOUserAgent foUserAgent = fopFactorySupplier.get().newFOUserAgent();
 
     final FoEventListener l = new FoEventListener();
     foUserAgent.getEventBroadcaster().addEventListener(l);
