@@ -60,11 +60,8 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
-    final URI base = Resourcer.path(".").toUri();
     ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
-    XmlToBytesTransformer t =
-    //FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
-        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, config);
+    XmlToBytesTransformer t = FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
     /*
      * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
      * rendererFactory.createFOEventHandler. See #testConfigVerkeerdLogError.
@@ -96,10 +93,9 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
-    final URI base = Resourcer.path(".").toUri();
     ByteSource config = Resourcer.byteSource("fop-config Incorrect.xml");
     XmlException e = assertThrows(XmlException.class,
-        () -> FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base, config));
+        () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
 
@@ -209,8 +205,7 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
-    final URI base = Resourcer.path(".").toUri();
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory(), base)
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Hello world A4.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {
@@ -224,8 +219,7 @@ public class FoToPdfTransformerTests {
 
   @Test
   void testArticleWithPdf() throws Exception {
-    final URI base = Resourcer.path(".").toUri();
-    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory(), base)
+    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory())
         .bytesToBytes(Resourcer.byteSource("Include PDF.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = PDDocument.load(pdf)) {

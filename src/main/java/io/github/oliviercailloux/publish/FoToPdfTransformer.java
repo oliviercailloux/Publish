@@ -101,6 +101,10 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     this.fopFactorySupplier = checkNotNull(fopFactorySupplier);
   }
 
+  public FoToPdfTransformer withDefaultConfig(URI baseUri) {
+    return new FoToPdfTransformer(delegateTransformer, () -> internalFopFactory(baseUri));
+  }
+
   public FoToPdfTransformer withConfig(ByteSource config) throws SAXException, IOException {
     final FopConfParser fopConfParser = parser(CONFIG_URI, config);
     FopFactory fopFactory = fopFactory(fopConfParser);
