@@ -12,7 +12,7 @@ import io.github.oliviercailloux.testutils.OutputCapturer;
 import javax.xml.transform.TransformerFactory;
 import org.junit.jupiter.api.Test;
 
-public class DocBookWithJdkThrowsTests {
+public class DocBookXsltWithJdkThrowsTests {
 
   @Test
   void testJdkFactoryFoThrows() throws Exception {
