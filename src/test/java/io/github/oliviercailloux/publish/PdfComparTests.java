@@ -11,7 +11,7 @@ import java.util.Collection;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-public class PdfComparatorTests {
+public class PdfComparTests {
 
   @Test
   void testCompareText() throws Exception {
