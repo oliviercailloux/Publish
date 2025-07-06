@@ -19,6 +19,7 @@ import javax.xml.transform.TransformerException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.render.RendererFactory;
+import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.xmlgraphics.util.MimeConstants;
@@ -41,7 +42,7 @@ public class FoToPdfTransformerTests {
         assertTrue(pdf.length >= 10);
     // byte[] expected = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
     Files.write(Path.of("out.pdf"), pdf);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       final PDFTextStripper stripper = new PDFTextStripper();
@@ -91,7 +92,7 @@ public class FoToPdfTransformerTests {
   @Test
   void testReadPdf() throws Exception {
     byte[] pdf = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       final PDFTextStripper stripper = new PDFTextStripper();
@@ -133,7 +134,7 @@ public class FoToPdfTransformerTests {
     // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
     // pdf);
     assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertEquals(null, document.getDocumentInformation().getTitle());
@@ -147,7 +148,7 @@ public class FoToPdfTransformerTests {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
         Resourcer.byteSource("Simple article using %s styled.fo".formatted(factoryDocBookToFo)));
     assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertEquals("My Article", document.getDocumentInformation().getTitle());
@@ -174,7 +175,7 @@ public class FoToPdfTransformerTests {
         FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(Resourcer.byteSource(
             "Article with small image using %s styled.fo".formatted(factoryDocBookToFo)));
     assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertEquals("My Article", document.getDocumentInformation().getTitle());
@@ -217,7 +218,7 @@ public class FoToPdfTransformerTests {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Overly long line.fo"));
     assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertEquals("My overly long line", document.getDocumentInformation().getTitle());
@@ -232,7 +233,7 @@ public class FoToPdfTransformerTests {
     final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory())
         .bytesToBytes(Resourcer.byteSource("Include PDF.fo"));
     assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
+    try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       final PDFTextStripper stripper = new PDFTextStripper();
