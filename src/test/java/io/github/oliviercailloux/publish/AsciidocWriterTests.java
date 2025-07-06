@@ -9,7 +9,9 @@ import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
+import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
+import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
 import java.nio.file.Files;
@@ -37,7 +39,7 @@ class AsciidocWriterTests {
     System.setProperty("jruby.logger.class", SLF4JLogger.class.getCanonicalName());
   }
 
-  private String getSingleParagraph(String xml) {
+  private String getSingleParagraph(String xml) throws XmlException, IOException {
     final Document adocXmlDoc =
         DomHelper.domHelper().asDocument(new StreamSource(new StringReader(xml)));
     final Element root = adocXmlDoc.getDocumentElement();
@@ -51,7 +53,7 @@ class AsciidocWriterTests {
   }
 
   @Test
-  void testComplex() {
+  void testComplex() throws Exception{
     final AsciidocWriter writer = new AsciidocWriter();
     String complex =
         "a *starred* version and an _underlined_, ‘quoted’, a http://url.com url ’’ two-quotes, with `back-quoted * star` and also `+` plus ``++` double-plus";
@@ -70,7 +72,7 @@ class AsciidocWriterTests {
   }
 
   @Test
-  void testTwoLines() {
+  void testTwoLines() throws Exception {
     final AsciidocWriter writer = new AsciidocWriter();
     final String content = "a *starred* on\ntwo *`lines`*!";
     writer.verbatim(content);
