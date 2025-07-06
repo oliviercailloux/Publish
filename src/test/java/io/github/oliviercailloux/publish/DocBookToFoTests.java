@@ -256,6 +256,7 @@ class DocBookToFoTests {
     final Document foDom = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToDom(docBook);
     String fo = DomHelper.domHelper().toString(foDom);
+    Files.writeString(Path.of("Howto shortened.fo"), fo);
     assertTrue(fo.contains("page-height=\"11in\""));
     assertTrue(fo.contains("page-width=\"8.5in\""));
     assertTrue(fo.contains("<fo:block"));
