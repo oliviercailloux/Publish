@@ -1,5 +1,6 @@
 package io.github.oliviercailloux.publish;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,6 +29,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 public class FoToPdfTransformerTests {
   @SuppressWarnings("unused")
@@ -103,10 +105,12 @@ public class FoToPdfTransformerTests {
       RendererFactory rendererFactory = foUserAgent.getRendererFactory();
       LOGGER.info("Creating event handler.");
       /*
-       * This logs an error about font substitution. The corresponding code is in FontSubstitutions. See https://github.com/apache/xmlgraphics-fop/blob/main/fop-core/src/main/java/org/apache/fop/fonts/substitute/FontSubstitutions.java.
-       * It seems that it cannot be intercepted. The closest I get is to use
-       * foUserAgent.getFontManager().setFontSubstitutions, but there is no access to the current
-       * one to delegate to it: FontManager#getFontSubstitutions is protected.
+       * This logs an error about font substitution. The corresponding code is in FontSubstitutions.
+       * See
+       * https://github.com/apache/xmlgraphics-fop/blob/main/fop-core/src/main/java/org/apache/fop/
+       * fonts/substitute/FontSubstitutions.java. It seems that it cannot be intercepted. The
+       * closest I get is to use foUserAgent.getFontManager().setFontSubstitutions, but there is no
+       * access to the current one to delegate to it: FontManager#getFontSubstitutions is protected.
        */
       rendererFactory.createFOEventHandler(foUserAgent, MimeConstants.MIME_PDF, stream);
       LOGGER.info("Created event handler.");
@@ -115,26 +119,16 @@ public class FoToPdfTransformerTests {
 
   @ParameterizedTest
   @EnumSource
-  void testConfigIncorrectParam(KnownFactory factoryFoToPdf) throws Exception {
+  void testConfigIncorrectIsSilent(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
-    XmlException e = assertThrows(XmlException.class,
-        () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
-    assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
-  }
-
-  @Test
-  void testConfigIncorrect() throws Exception {
-    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
-    XmlException e = assertThrows(XmlException.class,
-        () -> FoToPdfTransformer.withConfig(KnownFactory.SAXON.factory(), config));
-    assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
+    assertDoesNotThrow(() -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
   }
 
   @ParameterizedTest
   @EnumSource
   void testConfigInvalid(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Invalid.xml");
-    XmlException e = assertThrows(XmlException.class,
+    SAXException e = assertThrows(SAXException.class,
         () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
