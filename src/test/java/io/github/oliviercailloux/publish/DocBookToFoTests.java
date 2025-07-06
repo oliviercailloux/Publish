@@ -57,9 +57,10 @@ class DocBookToFoTests {
     LOGGER.debug("Removing ids from FO.");
     Document foWithoutIds = withoutIds(factory, fo);
     DomHelper helper = DomHelper.domHelper();
-    Files.writeString(Path.of("Expected dom without ids.fo"), helper.toString(expectedWithoutIds));
-    Files.writeString(Path.of("Fo dom without ids.fo"), helper.toString(foWithoutIds));
-    assertTrue(expectedWithoutIds.isEqualNode(foWithoutIds));
+    // Files.writeString(Path.of("Expected dom without ids.fo"), helper.toString(expectedWithoutIds));
+    // Files.writeString(Path.of("Fo dom without ids.fo"), helper.toString(foWithoutIds));
+    // assertTrue(expectedWithoutIds.isEqualNode(foWithoutIds));
+    assertEquals(helper.toString(expectedWithoutIds), helper.toString(foWithoutIds));
   }
 
   private static Document strippedDom(XmlTransformerFactory factory, String name)
@@ -71,7 +72,7 @@ class DocBookToFoTests {
 
   private static Document withoutIds(XmlTransformerFactory factory, Document doc)
       throws XmlException, IOException {
-    return factory.usingStylesheet(charSource("Remove ids.xsl"), ImmutableMap.of(),
+    return factory.usingStylesheet(charSource("Support to Fo/Remove ids.xsl"), ImmutableMap.of(),
         OutputProperties.noIndent()).sourceToDom(new DOMSource(doc));
   }
 
@@ -86,7 +87,7 @@ class DocBookToFoTests {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
-    String name = "Simple/Simple article.fo".formatted(factory);
+    String name = "Simple/Simple article.fo";
     LOGGER.debug("Getting DOM helper.");
     DomHelper helper = DomHelper.domHelper();
 
@@ -137,10 +138,10 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyled(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
+    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
-    String name = "Simple/Simple article styled.fo".formatted(factory);
+    String name = "Simple/Simple article styled.fo";
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -159,7 +160,7 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyledImaged(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("DocBook to Fo style with image.xsl");
+    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style with image.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
 
@@ -180,7 +181,7 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyledNonImage(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("DocBook to Fo style with non existing image.xsl");
+    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style with non existing image.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
 
@@ -204,7 +205,7 @@ class DocBookToFoTests {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("With image/Article with image.dbk");
-    String name = "With image/Article with image.fo".formatted(factory);
+    String name = "With image/Article with image.fo";
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -221,63 +222,23 @@ class DocBookToFoTests {
 
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
-  void testArticleWithImageToFoStyled(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
-    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
-    final CharSource docBook = charSource("With image/Article with image.dbk");
-    // String name = "With image/Article with image styled.fo".formatted(factory);
-
-    TransformerFactory underlying = factory.factory();
-    underlying.setURIResolver(DocBookResources.RESOLVER);
-    final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
-
-    final String fo = transformerFactory
-        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    assertTrue(fo.contains("Sample"));
-    assertTrue(
-        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    // assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
-  }
-
-  @ParameterizedTest
-  @EnumSource(names = {"XALAN", "SAXON"})
-  void testArticleWithSmallImageToFoStyled(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("DocBook to Fo style.xsl");
-    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
-    final CharSource docBook = charSource("With image/Article with small image.dbk");
-    // String name = "With image/Article with small image styled.fo".formatted(factory);
-
-    TransformerFactory underlying = factory.factory();
-    underlying.setURIResolver(DocBookResources.RESOLVER);
-    final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
-
-    final String fo = transformerFactory
-        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    assertTrue(fo.contains("Sample"));
-    assertTrue(
-        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
-    // assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
-  }
-
-  @ParameterizedTest
-  @EnumSource(names = {"XALAN", "SAXON"})
   void testArticleWithNonExistingImageToFo(KnownFactory factory) throws Exception {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("With image/Article with non existing image.dbk");
-    // String name = "With image/Article with non existing image using %s
-    // raw.fo".formatted(factory);
+    String name = "With image/Article with non existing image.fo";
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
     final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
 
-    final String fo = transformerFactory
-        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
+    final Document foDom = transformerFactory
+        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToDom(docBook);
+    String fo = DomHelper.domHelper().toString(foDom);
     assertTrue(fo.contains("Sample"));
     assertTrue(fo.contains(
         "https://github.com/Dauphine-MIDO/M1-alternance/raw/non-existent-branch/non-existent-graphic.png"));
-    // assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
+    assertEqualsApartFromIds(transformerFactory, name, foDom);
   }
 
   @ParameterizedTest
@@ -286,19 +247,20 @@ class DocBookToFoTests {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Howto/Howto shortened.dbk");
-    // String name = "Howto/Howto shortened using %s raw.fo".formatted(factory);
+    String name = "Howto/Howto shortened.fo";
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
     final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
 
-    final String fo = transformerFactory
-        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
+    final Document foDom = transformerFactory
+        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToDom(docBook);
+    String fo = DomHelper.domHelper().toString(foDom);
     assertTrue(fo.contains("page-height=\"11in\""));
     assertTrue(fo.contains("page-width=\"8.5in\""));
     assertTrue(fo.contains("<fo:block"));
     assertTrue(fo.contains("targeted at DocBook users"));
-    // assertEqualsApartFromIds(Resourcer.charSource(name).read(), fo);
+    assertEqualsApartFromIds(transformerFactory, name, foDom);
   }
 
   /**
@@ -333,7 +295,6 @@ class DocBookToFoTests {
 
     final String html = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), html);
     assertFalse(html.contains("docbook.css"));
     final Element documentElement = DomHelper.usingBuilder(new HtmlDocumentBuilder())
         .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
@@ -357,7 +318,6 @@ class DocBookToFoTests {
 
     final String html = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), html);
     assertTrue(html.contains("blah.css"));
     assertFalse(html.contains("docbook.css"));
     final Element documentElement = DomHelper.usingBuilder(new HtmlDocumentBuilder())
