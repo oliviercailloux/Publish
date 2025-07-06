@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.ByteSource;
-import io.github.oliviercailloux.jaris.io.PathUtils;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
@@ -14,9 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
-import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.stream.StreamSource;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.render.RendererFactory;
@@ -33,6 +32,23 @@ import org.slf4j.LoggerFactory;
 public class FoToPdfTransformerTests {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(FoToPdfTransformerTests.class);
+
+  @ParameterizedTest
+  @EnumSource
+  void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
+        assertTrue(pdf.length >= 10);
+    // byte[] expected = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
+    Files.write(Path.of("out.pdf"), pdf);
+    try (PDDocument document = PDDocument.load(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("Hello"));
+    }
+  }
 
   /* This logs an error which I apparently cannot access. */
   @Test
@@ -60,21 +76,21 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
-    ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
     XmlToBytesTransformer t = FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
     /*
      * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
      * rendererFactory.createFOEventHandler. See #testConfigVerkeerdLogError.
      */
     LOGGER.info("Converting.");
-    byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world A4.fo"));
+    byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
     LOGGER.info("Converted.");
     assertTrue(pdf.length >= 10);
   }
 
   @Test
   void testReadPdf() throws Exception {
-    byte[] pdf = Resourcer.byteSource("Hello world A4.pdf").read();
+    byte[] pdf = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
     try (PDDocument document = PDDocument.load(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
@@ -93,7 +109,16 @@ public class FoToPdfTransformerTests {
   @ParameterizedTest
   @EnumSource
   void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
-    ByteSource config = Resourcer.byteSource("fop-config Incorrect.xml");
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
+    XmlException e = assertThrows(XmlException.class,
+        () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
+    assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
+  }
+
+  @ParameterizedTest
+  @EnumSource
+  void testConfigInvalid(KnownFactory factoryFoToPdf) throws Exception {
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Invalid.xml");
     XmlException e = assertThrows(XmlException.class,
         () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
@@ -199,21 +224,6 @@ public class FoToPdfTransformerTests {
       final PDFTextStripper stripper = new PDFTextStripper();
       final String text = stripper.getText(document);
       assertTrue(text.contains("incomprehensibil-\n" + "ities"));
-    }
-  }
-
-  @ParameterizedTest
-  @EnumSource
-  void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-        .bytesToBytes(Resourcer.byteSource("Hello world A4.fo"));
-    assertTrue(pdf.length >= 10);
-    try (PDDocument document = PDDocument.load(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
-      final PDFTextStripper stripper = new PDFTextStripper();
-      final String text = stripper.getText(document);
-      assertTrue(text.contains("Hello"));
     }
   }
 

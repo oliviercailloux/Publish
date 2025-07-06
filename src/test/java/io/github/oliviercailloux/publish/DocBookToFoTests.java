@@ -27,7 +27,6 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
 import nu.validator.htmlparser.dom.HtmlDocumentBuilder;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.slf4j.Logger;
@@ -321,21 +320,47 @@ class DocBookToFoTests {
         .charsToChars(docBook));
   }
 
-  @Test
-  void testSimpleArticleToHtmlXalanTodo() throws Exception {
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToHtml(KnownFactory factory) throws Exception {
     URI stylesheet = DocBookResources.XSLT_1_HTML_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
 
-    TransformerFactory underlying = KnownFactory.XALAN.factory();
+    TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
     final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
 
     final String html = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    Files.writeString(Path.of("Simple article using Xalan.html"), html);
-    // assertTrue(html.contains("docbook.css"));
-    final Element documentElement = DomHelper.domHelper()
+    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), html);
+    assertFalse(html.contains("docbook.css"));
+    final Element documentElement = DomHelper.usingBuilder(new HtmlDocumentBuilder())
+        .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
+    final ImmutableList<Element> titleElements =
+        DomHelper.toElements(documentElement.getElementsByTagName("title"));
+    final Element titleElement = titleElements.stream().collect(MoreCollectors.onlyElement());
+    assertEquals("My Article", titleElement.getTextContent());
+  }
+
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
+  void testSimpleArticleToHtmlChangeCss(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_HTML_URI;
+    ImmutableMap<XmlName, String> properties =
+        ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css");
+    final CharSource docBook = charSource("Simple/Simple article.dbk");
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
+
+    final String html = transformerFactory
+        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
+    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), html);
+    assertTrue(html.contains("blah.css"));
+    assertFalse(html.contains("docbook.css"));
+    final Element documentElement = DomHelper.usingBuilder(new HtmlDocumentBuilder())
         .asDocument(new StreamSource(new StringReader(html))).getDocumentElement();
     final ImmutableList<Element> titleElements =
         DomHelper.toElements(documentElement.getElementsByTagName("title"));
@@ -380,7 +405,6 @@ class DocBookToFoTests {
 
     final String xhtml = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
-    // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), xhtml);
     assertTrue(xhtml.contains("blah.css"));
     assertFalse(xhtml.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
