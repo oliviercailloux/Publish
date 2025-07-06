@@ -137,6 +137,11 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <dependency>
+      <groupId>de.redsix</groupId>
+      <artifactId>pdfcompare</artifactId>
+      <version>1.2.3</version>
+    </dependency>
     <!-- Provided by pdfbox but need to be explicit so that other apache like dependencies do not
     load older version. -->
     <dependency>
