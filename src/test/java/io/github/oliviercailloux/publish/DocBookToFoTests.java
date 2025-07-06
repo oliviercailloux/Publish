@@ -23,10 +23,10 @@ import java.io.StringReader;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.regex.Pattern;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamSource;
+import nu.validator.htmlparser.dom.HtmlDocumentBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -35,13 +35,9 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-class DocBookTransformerTests {
+class DocBookToFoTests {
   @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DocBookTransformerTests.class);
-
-  private static final Pattern IDS_PATTERN = Pattern.compile("id=\".+\"");
-
-  private static final Pattern REF_PATTERN = Pattern.compile("internal-destination=\".+\"");
+  private static final Logger LOGGER = LoggerFactory.getLogger(DocBookToFoTests.class);
 
   public static void main(String[] args) throws Exception {
     final CharSource docBook = charSource("Overly long line.dbk");
@@ -53,13 +49,6 @@ class DocBookTransformerTests {
     Files.writeString(Path.of("out.fo"), fo);
   }
 
-  private static String withoutIds(String original) {
-    final String withoutBlockIds = IDS_PATTERN.matcher(original).replaceAll(r -> "id=\"\"");
-    final String withoutIds =
-        REF_PATTERN.matcher(withoutBlockIds).replaceAll(r -> "internal-destination=\"\"");
-    return withoutIds;
-  }
-
   private static void assertEqualsApartFromIds(XmlTransformerFactory factory,
       String expectedResource, Document fo) throws XmlException, IOException {
     LOGGER.debug("Stripping from expected.");
@@ -69,14 +58,9 @@ class DocBookTransformerTests {
     LOGGER.debug("Removing ids from FO.");
     Document foWithoutIds = withoutIds(factory, fo);
     DomHelper helper = DomHelper.domHelper();
-    Files.writeString(Path.of("Expected dom without ids.fo"),
-    helper.toString(expectedWithoutIds));
+    Files.writeString(Path.of("Expected dom without ids.fo"), helper.toString(expectedWithoutIds));
     Files.writeString(Path.of("Fo dom without ids.fo"), helper.toString(foWithoutIds));
     assertTrue(expectedWithoutIds.isEqualNode(foWithoutIds));
-  }
-
-  private static void assertEqualsApartFromIds(String expected, String fo) {
-    assertEquals(withoutIds(expected), withoutIds(fo));
   }
 
   private static Document strippedDom(XmlTransformerFactory factory, String name)
@@ -282,7 +266,8 @@ class DocBookTransformerTests {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("With image/Article with non existing image.dbk");
-    // String name = "With image/Article with non existing image using %s raw.fo".formatted(factory);
+    // String name = "With image/Article with non existing image using %s
+    // raw.fo".formatted(factory);
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -340,7 +325,7 @@ class DocBookTransformerTests {
   void testSimpleArticleToHtmlXalanTodo() throws Exception {
     URI stylesheet = DocBookResources.XSLT_1_HTML_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
-    final CharSource docBook = charSource("Simple article.dbk");
+    final CharSource docBook = charSource("Simple/Simple article.dbk");
 
     TransformerFactory underlying = KnownFactory.XALAN.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -363,7 +348,7 @@ class DocBookTransformerTests {
   void testSimpleArticleToXhtml(KnownFactory factory) throws Exception {
     URI stylesheet = URI.create("http://cdn.docbook.org/release/xsl/1.79.2/xhtml/docbook.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
-    final CharSource docBook = charSource("Simple article.dbk");
+    final CharSource docBook = charSource("Simple/Simple article.dbk");
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -384,9 +369,10 @@ class DocBookTransformerTests {
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToXhtmlChangeCss(KnownFactory factory) throws Exception {
     URI stylesheet = URI.create("http://cdn.docbook.org/release/xsl/1.79.2/xhtml/docbook.xsl");
-    ImmutableMap<XmlName, String> properties = ImmutableMap.of(XmlName.localName("html.stylesheet"),
-        "blah.css", XmlName.localName("docbook.css.source"), "");
-    final CharSource docBook = charSource("Simple article.dbk");
+    ImmutableMap<XmlName, String> properties =
+        ImmutableMap.of(XmlName.localName("html.stylesheet"), "blah.css");
+    // , XmlName.localName("docbook.css.source"), ""
+    final CharSource docBook = charSource("Simple/Simple article.dbk");
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -396,7 +382,7 @@ class DocBookTransformerTests {
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToChars(docBook);
     // Files.writeString(Path.of("Simple article using %s.html".formatted(factory)), xhtml);
     assertTrue(xhtml.contains("blah.css"));
-    assertTrue(!xhtml.contains("docbook.css"));
+    assertFalse(xhtml.contains("docbook.css"));
     final Element documentElement = DomHelper.domHelper()
         .asDocument(new StreamSource(new StringReader(xhtml))).getDocumentElement();
     final ImmutableList<Element> titleElements =
