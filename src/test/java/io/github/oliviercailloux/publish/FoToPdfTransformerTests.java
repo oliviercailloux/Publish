@@ -1,6 +1,7 @@
 package io.github.oliviercailloux.publish;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,8 +14,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
@@ -39,9 +38,8 @@ public class FoToPdfTransformerTests {
   void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
-        assertTrue(pdf.length >= 10);
-    // byte[] expected = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
-    Files.write(Path.of("out.pdf"), pdf);
+    assertTrue(pdf.length >= 10);
+
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
@@ -49,13 +47,54 @@ public class FoToPdfTransformerTests {
       final String text = stripper.getText(document);
       assertTrue(text.contains("Hello"));
     }
+
+    ByteSource expected = Resourcer.byteSource("Hello world/Hello world A4.pdf");
+    assertTrue(PdfCompar.compare(expected, ByteSource.wrap(pdf)).isEqual());
+  }
+
+  @ParameterizedTest
+  @EnumSource
+  void testHelloWorldA6(KnownFactory factoryFoToPdf) throws Exception {
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("Hello world/Hello world A6.fo"));
+    assertTrue(pdf.length >= 10);
+
+    try (PDDocument document = Loader.loadPDF(pdf)) {
+      final int numberOfPages = document.getNumberOfPages();
+      assertEquals(1, numberOfPages);
+      final PDFTextStripper stripper = new PDFTextStripper();
+      final String text = stripper.getText(document);
+      assertTrue(text.contains("Hello"));
+    }
+
+    assertTrue(PdfCompar
+        .compare(Resourcer.byteSource("Hello world/Hello world A6.pdf"), ByteSource.wrap(pdf))
+        .isEqual());
+    assertFalse(PdfCompar
+        .compare(Resourcer.byteSource("Hello world/Hello world A4.pdf"), ByteSource.wrap(pdf))
+        .isEqual());
+  }
+
+  @ParameterizedTest
+  @EnumSource
+  void testConfigVerkeerdLogError(KnownFactory factoryFoToPdf) throws Exception {
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
+    XmlToBytesTransformer t = FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
+    /*
+     * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
+     * rendererFactory.createFOEventHandler. See #testConfigVerkeerdDirect.
+     */
+    LOGGER.info("Converting.");
+    byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
+    LOGGER.info("Converted.");
+    assertTrue(pdf.length >= 10);
   }
 
   /* This logs an error which I apparently cannot access. */
   @Test
-  void testConfigVerkeerdLogError() throws Exception {
+  void testConfigVerkeerdDirect() throws Exception {
     final URI base = Resourcer.path(".").toUri();
-    ByteSource config = Resourcer.byteSource("fop-config TheVerkeerdFont.xml");
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
     FopFactory fopFactory;
     try (InputStream configStream = config.openBufferedStream();
         ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
@@ -64,7 +103,7 @@ public class FoToPdfTransformerTests {
       RendererFactory rendererFactory = foUserAgent.getRendererFactory();
       LOGGER.info("Creating event handler.");
       /*
-       * This logs an error about font substitution. The corresponding code is in FontSubstitutions.
+       * This logs an error about font substitution. The corresponding code is in FontSubstitutions. See https://github.com/apache/xmlgraphics-fop/blob/main/fop-core/src/main/java/org/apache/fop/fonts/substitute/FontSubstitutions.java.
        * It seems that it cannot be intercepted. The closest I get is to use
        * foUserAgent.getFontManager().setFontSubstitutions, but there is no access to the current
        * one to delegate to it: FontManager#getFontSubstitutions is protected.
@@ -76,43 +115,18 @@ public class FoToPdfTransformerTests {
 
   @ParameterizedTest
   @EnumSource
-  void testConfigVerkeerd(KnownFactory factoryFoToPdf) throws Exception {
-    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
-    XmlToBytesTransformer t = FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
-    /*
-     * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
-     * rendererFactory.createFOEventHandler. See #testConfigVerkeerdLogError.
-     */
-    LOGGER.info("Converting.");
-    byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
-    LOGGER.info("Converted.");
-    assertTrue(pdf.length >= 10);
-  }
-
-  @Test
-  void testReadPdf() throws Exception {
-    byte[] pdf = Resourcer.byteSource("Hello world/Hello world A4.pdf").read();
-    try (PDDocument document = Loader.loadPDF(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
-      final PDFTextStripper stripper = new PDFTextStripper();
-      /*
-       * Logs warning: “Using fallback font LiberationSans for base font Symbol” (and one more). I
-       * don’t know how to avoid this (did not look much, though).
-       */
-      LOGGER.info("Reading text.");
-      final String text = stripper.getText(document);
-      LOGGER.info("Read text.");
-      assertTrue(text.contains("Hello"));
-    }
-  }
-
-  @ParameterizedTest
-  @EnumSource
-  void testConfigIncorrect(KnownFactory factoryFoToPdf) throws Exception {
+  void testConfigIncorrectParam(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
     XmlException e = assertThrows(XmlException.class,
         () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
+    assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
+  }
+
+  @Test
+  void testConfigIncorrect() throws Exception {
+    ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
+    XmlException e = assertThrows(XmlException.class,
+        () -> FoToPdfTransformer.withConfig(KnownFactory.SAXON.factory(), config));
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
 
