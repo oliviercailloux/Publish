@@ -13,7 +13,7 @@ public class PdfCompar {
     try (ByteArrayInputStream expectedStream = new ByteArrayInputStream(expected.read());
         ByteArrayInputStream actualStream = new ByteArrayInputStream(actual.read())) {
       PdfComparator<CompareResultImpl> p =
-          new PdfComparator<CompareResultImpl>(expectedStream, actualStream);
+          new PdfComparator<>(expectedStream, actualStream);
       return p.compare();
     }
   }
