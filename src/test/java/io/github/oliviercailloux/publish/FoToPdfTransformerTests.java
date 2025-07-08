@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
@@ -95,7 +96,7 @@ public class FoToPdfTransformerTests {
   /* This logs an error which I apparently cannot access. */
   @Test
   void testConfigVerkeerdDirect() throws Exception {
-    final URI base = Resourcer.path(".").toUri();
+    final URI base = Path.of("").toUri();
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
     FopFactory fopFactory;
     try (InputStream configStream = config.openBufferedStream();
