@@ -235,7 +235,7 @@ class DocBookToFoTests {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Howto/Howto shortened.dbk");
-    String name = "Howto/Howto shortened.fo";
+    final String name = "Howto/Howto shortened.fo";
 
     TransformerFactory underlying = factory.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
@@ -244,7 +244,6 @@ class DocBookToFoTests {
     final Document foDom = transformerFactory
         .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToDom(docBook);
     String fo = DomHelper.domHelper().toString(foDom);
-    Files.writeString(Path.of("Howto shortened.fo"), fo);
     assertTrue(fo.contains("page-height=\"11in\""));
     assertTrue(fo.contains("page-width=\"8.5in\""));
     assertTrue(fo.contains("<fo:block"));
