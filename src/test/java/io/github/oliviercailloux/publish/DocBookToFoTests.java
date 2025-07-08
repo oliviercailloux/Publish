@@ -50,35 +50,23 @@ class DocBookToFoTests {
 
   private static void assertEqualsApartFromIds(XmlTransformerFactory factory,
       String expectedResource, Document fo) throws XmlException, IOException {
+    XmlTransformer stripper = factory.usingStylesheet(XmlTransformerFactory.FORCE_STRIP_WHITESPACE_STYLESHEET,
+            ImmutableMap.of(), OutputProperties.noIndent());
+    XmlTransformer idRemover = factory.usingStylesheet(charSource("Support to Fo/Remove ids.xsl"), ImmutableMap.of(),
+            OutputProperties.noIndent());
     LOGGER.debug("Stripping from expected.");
-    Document expectedStripped = strippedDom(factory, expectedResource);
+    Document expectedStripped = stripper.charsToDom(Resourcer.charSource(expectedResource));
     LOGGER.debug("Removing ids from expected.");
-    Document expectedWithoutIds = withoutIds(factory, expectedStripped);
+    Document expectedWithoutIds = idRemover.sourceToDom(new DOMSource((expectedStripped)));
+    LOGGER.debug("Stripping from obtained.");
+    Document obtainedStripped = stripper.sourceToDom(new DOMSource(fo));
     LOGGER.debug("Removing ids from FO.");
-    Document foWithoutIds = withoutIds(factory, fo);
-    DomHelper helper = DomHelper.domHelper();
+    Document foWithoutIds = idRemover.sourceToDom(new DOMSource((obtainedStripped)));
+    // DomHelper helper = DomHelper.domHelper();
     // Files.writeString(Path.of("Expected dom without ids.fo"), helper.toString(expectedWithoutIds));
     // Files.writeString(Path.of("Fo dom without ids.fo"), helper.toString(foWithoutIds));
-    // assertTrue(expectedWithoutIds.isEqualNode(foWithoutIds));
-    assertEquals(helper.toString(expectedWithoutIds), helper.toString(foWithoutIds));
-  }
-
-  private static Document strippedDom(XmlTransformerFactory factory, String name)
-      throws XmlException, IOException {
-    CharSource base = Resourcer.charSource(name);
-    return factory.usingStylesheet(XmlTransformerFactory.STRIP_WHITESPACE_STYLESHEET,
-        ImmutableMap.of(), OutputProperties.noIndent()).charsToDom(base);
-  }
-
-  private static Document withoutIds(XmlTransformerFactory factory, Document doc)
-      throws XmlException, IOException {
-    return factory.usingStylesheet(charSource("Support to Fo/Remove ids.xsl"), ImmutableMap.of(),
-        OutputProperties.noIndent()).sourceToDom(new DOMSource(doc));
-  }
-
-  public String noIndent(XmlTransformerFactory factory, Document doc) throws IOException {
-    return factory.usingStylesheet(XmlTransformerFactory.STRIP_WHITESPACE_STYLESHEET,
-        ImmutableMap.of(), OutputProperties.noIndent()).sourceToChars(new DOMSource(doc));
+    // assertEquals(helper.toString(expectedWithoutIds), helper.toString(foWithoutIds));
+    assertTrue(expectedWithoutIds.isEqualNode(foWithoutIds));
   }
 
   @ParameterizedTest
