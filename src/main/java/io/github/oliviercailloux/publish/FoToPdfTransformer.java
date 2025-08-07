@@ -39,6 +39,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   public static final URL CONFIG_URL =
       Resources.getResource(FoToPdfTransformer.class, "fop-config.xml");
   public static final URI CONFIG_URI = Unchecker.URI_UNCHECKER.getUsing(() -> CONFIG_URL.toURI());
+  public static final URI BASE_URI = CONFIG_URI.resolve("../");
 
   private final XmlTransformerFactory delegateTransformer;
   private Supplier<FopFactory> fopFactorySupplier;
@@ -77,7 +78,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   public static FoToPdfTransformer usingFactory(TransformerFactory factory) {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
-    return new FoToPdfTransformer(transformer, () -> internalFopFactory(CONFIG_URI));
+    return new FoToPdfTransformer(transformer, () -> internalFopFactory(BASE_URI));
   }
 
   /**
@@ -90,7 +91,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
       throws SAXException, IOException {
     final XmlTransformerFactory transformer =
         XmlTransformerFactory.usingFactory(factory).pedantic();
-    final FopConfParser fopConfParser = parser(CONFIG_URI, config);
+    final FopConfParser fopConfParser = parser(BASE_URI, config);
     FopFactory fopFactory = fopFactory(fopConfParser);
     return new FoToPdfTransformer(transformer, () -> fopFactory);
   }
@@ -106,7 +107,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   }
 
   public FoToPdfTransformer withConfig(ByteSource config) throws SAXException, IOException {
-    final FopConfParser fopConfParser = parser(CONFIG_URI, config);
+    final FopConfParser fopConfParser = parser(BASE_URI, config);
     FopFactory fopFactory = fopFactory(fopConfParser);
     return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
@@ -118,14 +119,14 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
    * @throws SAXException iff a SAX error was thrown parsing the FOP conf
    * @throws IOException iff an I/O error is thrown while parsing the FOP conf
    */
-  public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") URI baseUri, ByteSource config)
+  public FoToPdfTransformer withConfig(URI baseUri, ByteSource config)
       throws SAXException, IOException {
     final FopConfParser fopConfParser = parser(baseUri, config);
     FopFactory fopFactory = fopFactory(fopConfParser);
     return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
 
-  public FoToPdfTransformer withConfig(@SuppressWarnings("hiding") FopConfParser fopConfParser) {
+  public FoToPdfTransformer withConfig(FopConfParser fopConfParser) {
     FopFactory fopFactory = fopFactory(fopConfParser);
     return new FoToPdfTransformer(delegateTransformer, () -> fopFactory);
   }
