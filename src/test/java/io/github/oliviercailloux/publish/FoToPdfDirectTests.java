@@ -1,28 +1,39 @@
 package io.github.oliviercailloux.publish;
 
+import static com.google.common.base.Verify.verify;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.google.common.base.VerifyException;
 import com.google.common.io.ByteSource;
+import com.google.common.io.Resources;
+import io.github.oliviercailloux.jaris.exceptions.Unchecker;
+import io.github.oliviercailloux.jaris.xml.KnownFactory;
+import io.github.oliviercailloux.jaris.xml.XmlException;
+import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
+import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Path;
+import java.util.function.Supplier;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
-import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.Fop;
 import org.apache.fop.apps.FopFactory;
-import org.apache.fop.render.RendererFactory;
 import org.apache.xmlgraphics.util.MimeConstants;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 public class FoToPdfDirectTests {
   @SuppressWarnings("unused")
@@ -34,14 +45,8 @@ public class FoToPdfDirectTests {
     ByteSource config = Resourcer.byteSource("fop-config.xml");
     FopFactory fopFactory;
     try (InputStream configStream = config.openBufferedStream();
-        ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(new File("out.pdf")))) {
       fopFactory = FopFactory.newInstance(base, configStream);
-      final FOUserAgent foUserAgent = fopFactory.newFOUserAgent();
-      RendererFactory rendererFactory = foUserAgent.getRendererFactory();
-      LOGGER.info("Creating event handler.");
-      rendererFactory.createFOEventHandler(foUserAgent, MimeConstants.MIME_PDF, stream);
-      LOGGER.info("Created event handler.");
-      OutputStream out = new BufferedOutputStream(new FileOutputStream(new File("myfile.pdf")));
 
       try {
         // Step 3: Construct fop with desired output format
