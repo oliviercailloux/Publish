@@ -165,12 +165,11 @@ public class FoToPdfTransformerTests {
   }
 
   @CartesianTest
-  void testArticleWithImageThrows(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  void testArticleWithImageThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf)
+      throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(Resourcer
-        .byteSource("Article with image using %s styled.fo".formatted(factoryDocBookToFo))));
+    final XmlException e = assertThrows(XmlException.class,
+        () -> t.bytesToBytes(Resourcer.byteSource("With image/Article with image.fo")));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertTrue(cause.getMessage().contains("LineBreaking"));
