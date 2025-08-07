@@ -136,12 +136,9 @@ public class FoToPdfTransformerTests {
 
   @CartesianTest
   void testSimpleArticleRaw(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Simple/Simple article.fo".formatted(factoryDocBookToFo)));
-    // Files.write(Path.of("using %s then %s.pdf".formatted(factoryDocBookToFo, factoryFoToPdf)),
-    // pdf);
+        Resourcer.byteSource("Simple/Simple article.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -152,10 +149,9 @@ public class FoToPdfTransformerTests {
 
   @CartesianTest
   void testSimpleArticleStyled(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Simple/Simple article styled.fo".formatted(factoryDocBookToFo)));
+        Resourcer.byteSource("Simple/Simple article styled.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -177,10 +173,9 @@ public class FoToPdfTransformerTests {
 
   @CartesianTest
   void testArticleWithSmallImage(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Article with small image styled.fo".formatted(factoryDocBookToFo)));
+        Resourcer.byteSource("Article with small image styled.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -191,11 +186,10 @@ public class FoToPdfTransformerTests {
 
   @CartesianTest
   void testArticleWithNonExistingImageThrows(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
     final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(Resourcer
-        .byteSource("Article with non existing image styled.fo".formatted(factoryDocBookToFo))));
+        .byteSource("Article with non existing image styled.fo")));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertEquals(FileNotFoundException.class, cause.getCause().getClass());
@@ -208,11 +202,11 @@ public class FoToPdfTransformerTests {
    */
   @CartesianTest
   void testHowtoThrows(
-      @CartesianTest.Enum(names = {"XALAN", "SAXON"}) KnownFactory factoryDocBookToFo,
+      
       @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
     final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(
-        Resourcer.byteSource("Howto shortened styled.fo".formatted(factoryDocBookToFo))));
+        Resourcer.byteSource("Howto shortened styled.fo")));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertTrue(cause.getMessage().contains("LineBreaking"));
