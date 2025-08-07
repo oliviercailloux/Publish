@@ -13,10 +13,14 @@ import org.apache.fop.events.Event;
 import org.apache.fop.events.EventFormatter;
 import org.apache.fop.events.EventListener;
 import org.apache.fop.events.model.EventSeverity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 import org.slf4j.spi.LoggingEventBuilder;
 
 class FoEventListener implements EventListener {
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(FoEventListener.class);
 
   private final ArrayList<Event> events;
 
@@ -57,8 +61,7 @@ class FoEventListener implements EventListener {
       } else if (event.getSeverity() == EventSeverity.FATAL) {
         level = Level.ERROR;
       } else {
-        throw new VerifyException(
-            "Unexpected event severity: %s.".formatted(event.getSeverity()));
+        throw new VerifyException("Unexpected event severity: %s.".formatted(event.getSeverity()));
       }
       LoggingEventBuilder builder = FoToPdfTransformer.LOGGER.atLevel(level);
       if (exceptions.isEmpty()) {
@@ -77,7 +80,7 @@ class FoEventListener implements EventListener {
         builder.setMessage(formatted);
         builder.log();
         for (Exception e : exceptions) {
-          FoToPdfTransformer.LOGGER.atLevel(level).setCause(e).log();
+          LOGGER.atLevel(level).setCause(e).log();
         }
       }
     }
@@ -86,6 +89,9 @@ class FoEventListener implements EventListener {
   public static XmlException asException(Event e) {
     if (e.getParam("fnfe") instanceof FileNotFoundException fnfe) {
       throw new XmlException(new TransformerException(fnfe));
+    }
+    if (e.getParam("e") instanceof Exception x) {
+      throw new XmlException(new TransformerException(x));
     }
     throw new XmlException(new TransformerException(e.toString()));
   }
