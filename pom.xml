@@ -60,11 +60,11 @@
           <groupId>xml-apis</groupId>
           <artifactId>xml-apis</artifactId>
         </exclusion>
-        <!--				Requires xml-apis-ext for e.g. SVGDocument used by Batik to parse SVG graphics.-->
-        <!--				<exclusion>-->
-        <!--					<groupId>xml-apis</groupId>-->
-        <!--					<artifactId>xml-apis-ext</artifactId>-->
-        <!--				</exclusion>-->
+        <!--        Requires xml-apis-ext for e.g. SVGDocument used by Batik to parse SVG graphics.-->
+        <!--        <exclusion>-->
+        <!--          <groupId>xml-apis</groupId>-->
+        <!--          <artifactId>xml-apis-ext</artifactId>-->
+        <!--        </exclusion>-->
         <exclusion>
           <groupId>commons-logging</groupId>
           <artifactId>commons-logging</artifactId>
@@ -102,11 +102,11 @@
       <scope>runtime</scope>
     </dependency>
     <!-- <dependency>
-			<groupId>org.asciidoctor</groupId>
-			<artifactId>asciidoctorj-pdf</artifactId>
-			<version>2.3.0</version>
-			<scope>runtime</scope>
-		</dependency> -->
+      <groupId>org.asciidoctor</groupId>
+      <artifactId>asciidoctorj-pdf</artifactId>
+      <version>2.3.0</version>
+      <scope>runtime</scope>
+    </dependency> -->
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
