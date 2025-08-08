@@ -52,7 +52,7 @@ class DocBookToFoTests {
       String expectedResource, Document fo) throws XmlException, IOException {
     XmlTransformer stripper = factory.usingStylesheet(XmlTransformerFactory.FORCE_STRIP_WHITESPACE_STYLESHEET,
             ImmutableMap.of(), OutputProperties.noIndent());
-    XmlTransformer idRemover = factory.usingStylesheet(charSource("Support to Fo/Remove ids.xsl"), ImmutableMap.of(),
+    XmlTransformer idRemover = factory.usingStylesheet(charSource("Support from DocBook to Fo/Remove ids.xsl"), ImmutableMap.of(),
             OutputProperties.noIndent());
     LOGGER.debug("Stripping from expected.");
     Document expectedStripped = stripper.charsToDom(Resourcer.charSource(expectedResource));
@@ -126,7 +126,7 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyled(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style.xsl");
+    CharSource stylesheet = charSource("Support from DocBook to Fo/DocBook to Fo style.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
     String name = "Simple/Simple article styled.fo";
@@ -148,7 +148,7 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyledImaged(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style with image.xsl");
+    CharSource stylesheet = charSource("Support from DocBook to Fo/DocBook to Fo style with image.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
 
@@ -169,7 +169,7 @@ class DocBookToFoTests {
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
   void testSimpleArticleToFoStyledNonImage(KnownFactory factory) throws Exception {
-    CharSource stylesheet = charSource("Support to Fo/DocBook to Fo style with non existing image.xsl");
+    CharSource stylesheet = charSource("Support from DocBook to Fo/DocBook to Fo style with non existing image.xsl");
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();
     final CharSource docBook = charSource("Simple/Simple article.dbk");
 
