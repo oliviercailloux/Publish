@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
@@ -133,7 +132,7 @@ class AsciidocWriterTests {
 
   @Test
   void testTransformLink() throws Exception {
-    URL inputUrl = AsciidocWriterTests.class.getResource("A Java course link.adoc");
+    URL inputUrl = AsciidocWriterTests.class.getResource("vrac/A Java course link.adoc");
     final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
     LOGGER.info("Creating Asciidoctor converter.");
     final String docBook;
@@ -151,7 +150,7 @@ class AsciidocWriterTests {
 
   @Test
   void testTransformPresent() throws Exception {
-    URL inputUrl = AsciidocWriterTests.class.getResource("A Java course present.adoc");
+    URL inputUrl = AsciidocWriterTests.class.getResource("vrac/A Java course present.adoc");
     final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
     LOGGER.info("Creating Asciidoctor converter.");
     final String docBook;
@@ -176,7 +175,7 @@ class AsciidocWriterTests {
     writer.table("1, 1", ImmutableList.of("h1", "h2"), ImmutableList.of(r1, r2, r3));
 
     final String expected =
-        Files.readString(Path.of(AsciidocWriterTests.class.getResource("Table.adoc").toURI()));
+        Files.readString(Path.of(AsciidocWriterTests.class.getResource("vrac/Table.adoc").toURI()));
     assertEquals(expected, writer.getContent());
   }
 }
