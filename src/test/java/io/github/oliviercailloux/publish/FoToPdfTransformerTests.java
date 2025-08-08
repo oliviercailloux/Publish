@@ -32,7 +32,6 @@ import org.apache.xmlgraphics.util.MimeConstants;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junitpioneer.jupiter.cartesian.CartesianTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -143,8 +142,9 @@ public class FoToPdfTransformerTests {
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
 
-  @CartesianTest
-  void testSimpleArticleRaw(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testSimpleArticleRaw(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Simple/Simple article.fo"));
     try (PDDocument document = Loader.loadPDF(pdf)) {
@@ -154,8 +154,9 @@ public class FoToPdfTransformerTests {
     }
   }
 
-  @CartesianTest
-  void testSimpleArticleStyled(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testSimpleArticleStyled(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Simple/Simple article styled.fo"));
     try (PDDocument document = Loader.loadPDF(pdf)) {
@@ -166,9 +167,9 @@ public class FoToPdfTransformerTests {
     }
   }
 
-  @CartesianTest
-  void testArticleWithImageThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf)
-      throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testArticleWithImageThrows(KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
     final XmlException e = assertThrows(XmlException.class,
         () -> t.bytesToBytes(Resourcer.byteSource("With image/Article with image.fo")));
@@ -177,8 +178,9 @@ public class FoToPdfTransformerTests {
     assertTrue(cause.getMessage().contains("LineBreaking"));
   }
 
-  @CartesianTest
-  void testArticleWithSmallImage(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testArticleWithSmallImage(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("With image/Article with small image.fo"));
     assertTrue(pdf.length >= 10);
@@ -192,9 +194,9 @@ public class FoToPdfTransformerTests {
     }
   }
 
-  @CartesianTest
-  void testArticleWithNonExistingImageThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf)
-      throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testArticleWithNonExistingImageThrows(KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
     final XmlException e = assertThrows(XmlException.class, () -> t
         .bytesToBytes(Resourcer.byteSource("With image/Article with non existing image.fo")));
@@ -208,8 +210,9 @@ public class FoToPdfTransformerTests {
    * process. Tables are not supported; and even without tables, it complains about some line
    * overflow (including without my custom styling). I didn’t investigate further.
    */
-  @CartesianTest
-  void testHowtoThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testHowtoThrows(KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
     final XmlException e = assertThrows(XmlException.class,
         () -> t.bytesToBytes(Resourcer.byteSource("Howto/Howto shortened.fo")));
@@ -256,5 +259,5 @@ public class FoToPdfTransformerTests {
       assertTrue(Files.exists(outputPath));
       assertTrue(Files.size(outputPath) > 0);
     }
-  }    
+  }
 }
