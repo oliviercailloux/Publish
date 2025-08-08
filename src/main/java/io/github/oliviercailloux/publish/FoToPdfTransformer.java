@@ -81,21 +81,6 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
     return new FoToPdfTransformer(transformer, () -> internalFopFactory(BASE_URI));
   }
 
-  /**
-   * @param config the FOP conf
-   * @return a fop factory
-   * @throws SAXException iff a SAX error was thrown parsing the FOP conf
-   * @throws IOException iff an I/O error is thrown while parsing the FOP conf
-   */
-  public static FoToPdfTransformer withConfig(TransformerFactory factory, ByteSource config)
-      throws SAXException, IOException {
-    final XmlTransformerFactory transformer =
-        XmlTransformerFactory.usingFactory(factory).pedantic();
-    final FopConfParser fopConfParser = parser(BASE_URI, config);
-    FopFactory fopFactory = fopFactory(fopConfParser);
-    return new FoToPdfTransformer(transformer, () -> fopFactory);
-  }
-
   private FoToPdfTransformer(XmlTransformerFactory delegateTransformer,
       Supplier<FopFactory> fopFactorySupplier) {
     this.delegateTransformer = checkNotNull(delegateTransformer);

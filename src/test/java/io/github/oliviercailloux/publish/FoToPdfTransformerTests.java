@@ -82,7 +82,8 @@ public class FoToPdfTransformerTests {
   @EnumSource
   void testConfigVerkeerdLogError(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config TheVerkeerdFont.xml");
-    XmlToBytesTransformer t = FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config);
+    XmlToBytesTransformer t =
+        FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).withConfig(config);
     /*
      * The call new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, stream); triggers the
      * rendererFactory.createFOEventHandler. See #testConfigVerkeerdDirect.
@@ -126,15 +127,16 @@ public class FoToPdfTransformerTests {
   @EnumSource
   void testConfigIncorrectIsSilent(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Incorrect.xml");
-    assertDoesNotThrow(() -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
+    FoToPdfTransformer usingFactory = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+    assertDoesNotThrow(() -> usingFactory.withConfig(config));
   }
 
   @ParameterizedTest
   @EnumSource
   void testConfigInvalid(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource config = Resourcer.byteSource("Support from Fo/fop-config Invalid.xml");
-    SAXException e = assertThrows(SAXException.class,
-        () -> FoToPdfTransformer.withConfig(factoryFoToPdf.factory(), config));
+    FoToPdfTransformer usingFactory = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+    SAXException e = assertThrows(SAXException.class, () -> usingFactory.withConfig(config));
     assertTrue(Throwables.getRootCause(e).getMessage().contains("DoesNotExist"));
   }
 
