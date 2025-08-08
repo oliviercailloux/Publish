@@ -117,7 +117,7 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
   }
 
   @Override
-  public void sourceToResult(Source source, Result result) throws XmlException {
+  public void sourceToResult(Source source, Result result) throws XmlException, IOException {
     checkArgument(result instanceof StreamResult);
     final StreamResult streamResult = (StreamResult) result;
 
@@ -131,11 +131,10 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
       res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, out));
     } catch (FOPException e) {
       throw new IllegalStateException(e);
-    } catch (IOException e) {
-      throw new XmlException(e);
     }
 
     delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
+
     /*
      * This duplicates the serious event that will get thrown in the log, but we’d better do that so
      * that one can see the order of events in the log and thus where the first serious one happened
