@@ -7,7 +7,7 @@
     <version>0.0.26</version>
   </parent>
   <artifactId>publish</artifactId>
-  <version>0.0.11</version>
+  <version>0.0.12-SNAPSHOT</version>
   <name>Publish</name>
   <properties>
     <github-repository>${project.name}</github-repository>
