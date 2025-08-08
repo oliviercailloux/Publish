@@ -15,28 +15,4 @@ I will make reasonable efforts to respond promptly and fix bugs (or at least doc
 The API is _not_ stable. Please contact me if you are interested in using this library and wonder about stabilizing its API, or if you would like more example code.
 
 == Use
-I recommend using the XALAN or SAXON factory; the JDK embedded one fails on
-   *        multiple DocBook stylesheets.
-   * @return a doc book transformer
-   */
-  public static DocBookTransformer usingFactory(TransformerFactory factory) {
-    /*
-     * Note that using a pedantic factory (i.e., failing upon encountering warning messages) is
-     * hopeless, as DocBook spits out messages such as “Making portrait pages on A4 paper
-     * (210mmx297mm)”.
-
-== PDFs
-https://www.princexml.com/forum/topic/1854/inclusion-of-pdf-contents
-https://www.princexml.com/forum/topic/4981/adding-a-pdf-file
-
-== Decision
-I can’t find a satisfactory solution for including PDFs beyond going through FO.
-(Perhaps https://github.com/docbook/xslTNG/issues/121?)
-Thus, I’ll stick with v1 for now.
-Perhaps v2 would work (didn’t check if they support FO) but if going for unsupported XSLT anyway, better stick with the one I know.
-
-Longer term, I’d probably need to generate only HTML and avoid having PDFs to start with.
-In some cases, we know the final size to be printed to (A4 paper for example), so we do not need responsiveness. Even then, best would be to generate HTML but specially tuned for that size (not responsive): we’d still benefit from hyperlinking and embedded sub-documents, and it provides a unique workflow for responsive and non-responsive documents.
-
-== TODO
-Test JaxB stuff.
+I recommend using the XALAN or SAXON factory; the JDK embedded one fails on multiple DocBook stylesheets.
