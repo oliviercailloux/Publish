@@ -132,7 +132,7 @@ class AsciidocWriterTests {
 
   @Test
   void testTransformLink() throws Exception {
-    URL inputUrl = AsciidocWriterTests.class.getResource("vrac/A Java course link.adoc");
+    URL inputUrl = AsciidocWriterTests.class.getResource("Various Asciidoc/Link.adoc");
     final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
     LOGGER.info("Creating Asciidoctor converter.");
     final String docBook;
@@ -175,7 +175,7 @@ class AsciidocWriterTests {
     writer.table("1, 1", ImmutableList.of("h1", "h2"), ImmutableList.of(r1, r2, r3));
 
     final String expected =
-        Files.readString(Path.of(AsciidocWriterTests.class.getResource("vrac/Table.adoc").toURI()));
+        Files.readString(Path.of(AsciidocWriterTests.class.getResource("Various Asciidoc/Table.adoc").toURI()));
     assertEquals(expected, writer.getContent());
   }
 }
