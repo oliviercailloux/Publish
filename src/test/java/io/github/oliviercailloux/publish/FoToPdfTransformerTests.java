@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.base.Throwables;
 import com.google.common.io.ByteSource;
+import com.google.common.io.MoreFiles;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
@@ -19,6 +20,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.stream.StreamResult;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.render.RendererFactory;
@@ -240,4 +242,11 @@ public class FoToPdfTransformerTests {
     ByteSource expected = Resourcer.byteSource("Various Fo/Include PDF.pdf");
     assertTrue(PdfCompar.compare(expected, ByteSource.wrap(pdf)).isEqual());
   }
+
+  @Test
+  void testByteSink() throws Exception {
+    ByteSource source = Resourcer.byteSource("Simple/Simple article.fo");
+    final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory());
+    toPdf.bytesToBytes(source, MoreFiles.asByteSink(Path.of("out.pdf")));
+  }    
 }
