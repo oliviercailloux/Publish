@@ -8,8 +8,9 @@
   </parent>
   <artifactId>publish</artifactId>
   <version>0.0.11-SNAPSHOT</version>
-
+  <name>Publish</name>
   <properties>
+    <github-repository>${project.name}</github-repository>
     <!-- Avoids warning (https://github.com/jruby/jruby/issues/6721) when mvn test. -->
     <argLine>
       --add-opens
