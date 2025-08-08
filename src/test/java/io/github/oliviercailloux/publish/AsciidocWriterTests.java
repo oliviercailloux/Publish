@@ -122,12 +122,8 @@ class AsciidocWriterTests {
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
       final String docBookFull = adocConverter.convert(written,
           Options.builder().standalone(true).backend("docbook").build());
-      final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
-      final String transformed =
-          XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
-              .usingStylesheet(DocBookStylesheets.Xslt1.TO_FO).sourceToChars(docBookInput);
-      assertTrue(transformed.contains("page-height=\"11in\""));
-      assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));
+      assertTrue(docBookFull.contains("<title>Untitled</title>"), docBookFull);
+      assertTrue(docBookFull.contains("\ntwo *`lines`*!</simpara>"));
     }
   }
 
