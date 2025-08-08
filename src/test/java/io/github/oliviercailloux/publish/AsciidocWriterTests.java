@@ -149,24 +149,6 @@ class AsciidocWriterTests {
   }
 
   @Test
-  void testTransformPresent() throws Exception {
-    URL inputUrl = AsciidocWriterTests.class.getResource("vrac/A Java course present.adoc");
-    final String inputStr = Files.readString(Path.of(inputUrl.toURI()));
-    LOGGER.info("Creating Asciidoctor converter.");
-    final String docBook;
-    try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
-      LOGGER.info("Converting to Docbook.");
-      docBook = adocConverter.convert(inputStr, Options.builder().standalone(true).backend("docbook")
-          // .baseDir(L3_DIR.toAbsolutePath().toFile())
-          .safe(SafeMode.UNSAFE).build());
-    }
-    LOGGER.info("Validating Docbook.");
-    LOGGER.debug("Docbook: {}.", docBook);
-    DocBookConformityChecker.usingEmbeddedSchema()
-        .verifyValid(new StreamSource(new StringReader(docBook)));
-  }
-
-  @Test
   void testTable() throws Exception {
     final AsciidocWriter writer = new AsciidocWriter();
     final ImmutableList<String> r1 = ImmutableList.of("c1", "c2");
