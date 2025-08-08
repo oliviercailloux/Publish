@@ -17,6 +17,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.function.Supplier;
+import javax.xml.crypto.dsig.TransformException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerFactory;
@@ -128,12 +129,13 @@ public class FoToPdfTransformer implements XmlToBytesTransformer {
 
     final Result res;
     try (OutputStream out = streamResult.getOutputStream()) {
-      res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, out));
-    } catch (FOPException e) {
-      throw new IllegalStateException(e);
+      try {
+        res = new SAXResult(new FOTreeBuilder(MimeConstants.MIME_PDF, foUserAgent, out));
+      } catch (FOPException e) {
+        throw new XmlException(new TransformException(e));
+      }
+      delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
     }
-
-    delegateTransformer.usingEmptyStylesheet().sourceToResult(source, res);
 
     /*
      * This duplicates the serious event that will get thrown in the log, but we’d better do that so
