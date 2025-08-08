@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableList;
 import io.github.oliviercailloux.jaris.xml.DomHelper;
+import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
 import java.io.IOException;
@@ -123,7 +124,7 @@ class AsciidocWriterTests {
           Options.builder().standalone(true).backend("docbook").build());
       final StreamSource docBookInput = new StreamSource(new StringReader(docBookFull));
       final String transformed =
-          XmlTransformerFactory.usingFactory(new net.sf.saxon.TransformerFactoryImpl())
+          XmlTransformerFactory.usingFactory(KnownFactory.SAXON.factory())
               .usingStylesheet(DocBookStylesheets.Xslt1.TO_FO).sourceToChars(docBookInput);
       assertTrue(transformed.contains("page-height=\"11in\""));
       assertTrue(transformed.contains("\ntwo *`lines`*!</fo:block>"));

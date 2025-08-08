@@ -2,6 +2,7 @@ package io.github.oliviercailloux.publish;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.CharSource;
+import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformer;
 import io.github.oliviercailloux.jaris.xml.XmlTransformerFactory;
@@ -30,7 +31,7 @@ public class Timing {
     proceed();
   }
 
-  static void proceed() throws IOException, MalformedURLException {
+  static void proceed() throws IOException, MalformedURLException, ClassNotFoundException {
     final String adoc = Files.readString(L3_DIR.resolve("Lecture notes.adoc"));
     final String docBook;
     /* FIXME crash if file not found. */
@@ -44,7 +45,7 @@ public class Timing {
 
     LOGGER.info("Validating Docbook.");
     DocBookConformityChecker.usingEmbeddedSchema().verifyValid(docBookSource);
-    final TransformerFactory factory = new net.sf.saxon.TransformerFactoryImpl();
+    final TransformerFactory factory = KnownFactory.SAXON.factory();
     final StreamSource myStyle = new StreamSource(
         Path.of("/home/olivier/Logiciels/fop/mystyle.xsl").toUri().toURL().toString());
     final XmlTransformer toFo =
