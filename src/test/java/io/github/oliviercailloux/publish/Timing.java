@@ -48,11 +48,12 @@ public class Timing {
     final TransformerFactory factory = KnownFactory.SAXON.factory();
     final StreamSource myStyle = new StreamSource(
         Path.of("/home/olivier/Logiciels/fop/mystyle.xsl").toUri().toURL().toString());
-    final XmlTransformer toFo =
-        XmlTransformerFactory.usingFactory(factory).usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.indent());
-        // XmlTransformerFactory.usingFactory(factory).usingStylesheet(DocBookStylesheets.Xslt1.TO_FO);
+    final XmlTransformer toFo = XmlTransformerFactory.usingFactory(factory).usingStylesheet(myStyle,
+        ImmutableMap.of(), OutputProperties.indent());
+    // XmlTransformerFactory.usingFactory(factory).usingStylesheet(DocBookStylesheets.Xslt1.TO_FO);
     final String fo = toFo.charsToChars(docBookSource);
-    final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory).withDefaultConfig(L3_DIR.toUri());
+    final XmlToBytesTransformer toPdf =
+        FoToPdfTransformer.usingFactory(factory).withDefaultConfig(L3_DIR.toUri());
     byte[] pdf = toPdf.charsToBytes(fo);
     Files.write(Path.of("Lecture notes.pdf"), pdf);
   }

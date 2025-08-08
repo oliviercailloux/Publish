@@ -53,10 +53,10 @@ class AsciidocWriterTests {
   }
 
   @Test
-  void testComplex() throws Exception{
+  void testComplex() throws Exception {
     final AsciidocWriter writer = new AsciidocWriter();
-    String complex =
-        "a *starred* version and an _underlined_, ‘quoted’, a http://url.com url ’’ two-quotes, with `back-quoted * star` and also `+` plus ``++` double-plus";
+    String complex = "a *starred* version and an _underlined_, ‘quoted’, a http://url.com url ’’ "
+        + "two-quotes, with `back-quoted * star` and also `+` plus ``++` double-plus";
     writer.verbatim(complex);
     final String written = writer.getContent();
 
@@ -135,9 +135,10 @@ class AsciidocWriterTests {
     final String docBook;
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
       LOGGER.info("Converting to Docbook.");
-      docBook = adocConverter.convert(inputStr, Options.builder().standalone(true).backend("docbook")
-          // .baseDir(L3_DIR.toAbsolutePath().toFile())
-          .safe(SafeMode.UNSAFE).build());
+      docBook = adocConverter.convert(inputStr,
+          Options.builder().standalone(true).backend("docbook")
+              // .baseDir(L3_DIR.toAbsolutePath().toFile())
+              .safe(SafeMode.UNSAFE).build());
     }
     LOGGER.info("Validating Docbook.");
     LOGGER.debug("Docbook: {}.", docBook);
@@ -153,8 +154,8 @@ class AsciidocWriterTests {
     final ImmutableList<String> r3 = ImmutableList.of("c1 last");
     writer.table("1, 1", ImmutableList.of("h1", "h2"), ImmutableList.of(r1, r2, r3));
 
-    final String expected =
-        Files.readString(Path.of(AsciidocWriterTests.class.getResource("Various Asciidoc/Table.adoc").toURI()));
+    final String expected = Files.readString(
+        Path.of(AsciidocWriterTests.class.getResource("Various Asciidoc/Table.adoc").toURI()));
     assertEquals(expected, writer.getContent());
   }
 }

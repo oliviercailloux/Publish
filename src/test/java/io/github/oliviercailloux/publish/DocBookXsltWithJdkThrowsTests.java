@@ -24,8 +24,10 @@ public class DocBookXsltWithJdkThrowsTests {
     XmlException e =
         assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookResources.XSLT_1_FO_URI));
     String rootCause = Throwables.getRootCause(e).getMessage();
-    assertTrue(rootCause.contains(
-        "the compiler encountered XPath expressions with an accumulated '10 001' operators that exceeds the '10 000' limit set by 'FEATURE_SECURE_PROCESSING'."),
+    assertTrue(
+        rootCause.contains(
+            "the compiler encountered XPath expressions with an accumulated '10 001' operators"
+                + " that exceeds the '10 000' limit set by 'FEATURE_SECURE_PROCESSING'."),
         "Root cause: " + rootCause);
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
@@ -39,10 +41,13 @@ public class DocBookXsltWithJdkThrowsTests {
     TransformerFactory underlying = KnownFactory.JDK.factory();
     underlying.setURIResolver(DocBookResources.RESOLVER);
     final XmlTransformerFactory t = XmlTransformerFactory.usingFactory(underlying);
-    XmlException e = assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookResources.XSLT_1_HTML_URI));
+    XmlException e =
+        assertThrows(XmlException.class, () -> t.usingStylesheet(DocBookResources.XSLT_1_HTML_URI));
     String rootCause = Throwables.getRootCause(e).getMessage();
-    assertTrue(rootCause.contains(
-        "the compiler encountered XPath expressions with an accumulated '10 001' operators that exceeds the '10 000' limit set by 'FEATURE_SECURE_PROCESSING'."),
+    assertTrue(
+        rootCause.contains(
+            "the compiler encountered XPath expressions with an accumulated '10 001' operators"
+                + " that exceeds the '10 000' limit set by 'FEATURE_SECURE_PROCESSING'."),
         "Root cause: " + rootCause);
     capturer.restore();
     assertTrue(capturer.out().isEmpty());
