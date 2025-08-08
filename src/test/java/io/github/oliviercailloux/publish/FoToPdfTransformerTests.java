@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.common.base.Throwables;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
+import com.google.common.jimfs.Jimfs;
 import io.github.oliviercailloux.jaris.xml.KnownFactory;
 import io.github.oliviercailloux.jaris.xml.XmlException;
 import io.github.oliviercailloux.jaris.xml.XmlToBytesTransformer;
@@ -17,10 +18,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.stream.StreamResult;
 import org.apache.fop.apps.FOUserAgent;
 import org.apache.fop.apps.FopFactory;
 import org.apache.fop.render.RendererFactory;
@@ -243,10 +244,17 @@ public class FoToPdfTransformerTests {
     assertTrue(PdfCompar.compare(expected, ByteSource.wrap(pdf)).isEqual());
   }
 
-  @Test
-  void testByteSink() throws Exception {
+  @ParameterizedTest
+  @EnumSource
+  void testByteSink(KnownFactory factoryFoToPdf) throws Exception {
     ByteSource source = Resourcer.byteSource("Simple/Simple article.fo");
-    final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory());
-    toPdf.bytesToBytes(source, MoreFiles.asByteSink(Path.of("out.pdf")));
+    final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
+
+    try (FileSystem fs = Jimfs.newFileSystem()) {
+      Path outputPath = fs.getPath("out.pdf");
+      toPdf.bytesToBytes(source, MoreFiles.asByteSink(outputPath));
+      assertTrue(Files.exists(outputPath));
+      assertTrue(Files.size(outputPath) > 0);
+    }
   }    
 }
