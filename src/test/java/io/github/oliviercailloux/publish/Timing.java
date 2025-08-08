@@ -31,7 +31,7 @@ public class Timing {
   }
 
   static void proceed() throws IOException, MalformedURLException {
-    final String adoc = Files.readString(L3_DIR.resolve("Lecture notes short.adoc"));
+    final String adoc = Files.readString(L3_DIR.resolve("Lecture notes.adoc"));
     final String docBook;
     /* FIXME crash if file not found. */
     try (Asciidoctor adocConverter = Asciidoctor.Factory.create()) {
@@ -51,10 +51,8 @@ public class Timing {
         XmlTransformerFactory.usingFactory(factory).usingStylesheet(myStyle, ImmutableMap.of(), OutputProperties.indent());
         // XmlTransformerFactory.usingFactory(factory).usingStylesheet(DocBookStylesheets.Xslt1.TO_FO);
     final String fo = toFo.charsToChars(docBookSource);
-    final StreamSource foSource = new StreamSource(new StringReader(fo));
     final XmlToBytesTransformer toPdf = FoToPdfTransformer.usingFactory(factory).withDefaultConfig(L3_DIR.toUri());
-    // byte[] pdf = toPdf.charsToBytes(CharSource.wrap(fo));
-    byte[] pdf = toPdf.sourceToBytes(foSource);
+    byte[] pdf = toPdf.charsToBytes(fo);
     Files.write(Path.of("Lecture notes.pdf"), pdf);
   }
 }
