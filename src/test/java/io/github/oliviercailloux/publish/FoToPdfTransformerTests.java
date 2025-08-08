@@ -43,7 +43,6 @@ public class FoToPdfTransformerTests {
   void testHelloWorld(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
-    assertTrue(pdf.length >= 10);
 
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -62,7 +61,6 @@ public class FoToPdfTransformerTests {
   void testHelloWorldA6(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Hello world/Hello world A6.fo"));
-    assertTrue(pdf.length >= 10);
 
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -92,7 +90,11 @@ public class FoToPdfTransformerTests {
     LOGGER.info("Converting.");
     byte[] pdf = t.bytesToBytes(Resourcer.byteSource("Hello world/Hello world A4.fo"));
     LOGGER.info("Converted.");
-    assertTrue(pdf.length >= 10);
+
+    try (PDDocument document = Loader.loadPDF(pdf)) {
+      assertEquals(1, document.getNumberOfPages());
+      assertTrue(new PDFTextStripper().getText(document).contains("Hello"));
+    }
   }
 
   /* This logs an error which I apparently cannot access. */
@@ -140,11 +142,10 @@ public class FoToPdfTransformerTests {
   void testSimpleArticleRaw(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Simple/Simple article.fo"));
-    assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
+      assertEquals(1, document.getNumberOfPages());
       assertEquals(null, document.getDocumentInformation().getTitle());
+      assertTrue(new PDFTextStripper().getText(document).contains("Another paragraph"));
     }
   }
 
@@ -152,11 +153,11 @@ public class FoToPdfTransformerTests {
   void testSimpleArticleStyled(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Simple/Simple article styled.fo"));
-    assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertEquals("My Article", document.getDocumentInformation().getTitle());
+      assertTrue(new PDFTextStripper().getText(document).contains("Another paragraph"));
     }
   }
 
@@ -182,6 +183,7 @@ public class FoToPdfTransformerTests {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
       assertNull(document.getDocumentInformation().getTitle());
+      assertTrue(new PDFTextStripper().getText(document).contains("Going Home"));
     }
   }
 
@@ -216,28 +218,21 @@ public class FoToPdfTransformerTests {
   void testOverlyLongLineHyphenates(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
         .bytesToBytes(Resourcer.byteSource("Various Fo/Overly long line.fo"));
-    assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
+      assertEquals(1, document.getNumberOfPages());
       assertEquals("My overly long line", document.getDocumentInformation().getTitle());
-      final PDFTextStripper stripper = new PDFTextStripper();
-      final String text = stripper.getText(document);
-      assertTrue(text.contains("incomprehensibil-\n" + "ities"));
+      assertTrue(new PDFTextStripper().getText(document).contains("incomprehensibil-\n" + "ities"));
     }
   }
 
   @Test
   void testArticleWithPdf() throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory()).withDefaultConfig(Path.of("").toUri())
+    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory())
+        .withDefaultConfig(Path.of("").toUri())
         .bytesToBytes(Resourcer.byteSource("Various Fo/Include PDF.fo"));
-    assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
-      final int numberOfPages = document.getNumberOfPages();
-      assertEquals(1, numberOfPages);
-      final PDFTextStripper stripper = new PDFTextStripper();
-      final String text = stripper.getText(document);
-      assertTrue(text.contains("Hello"));
+      assertEquals(1, document.getNumberOfPages());
+      assertTrue(new PDFTextStripper().getText(document).contains("Hello"));
     }
 
     ByteSource expected = Resourcer.byteSource("Various Fo/Include PDF.pdf");
