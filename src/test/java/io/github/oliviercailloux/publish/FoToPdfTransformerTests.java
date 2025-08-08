@@ -3,6 +3,7 @@ package io.github.oliviercailloux.publish;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,6 +16,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.xml.transform.TransformerException;
 import org.apache.fop.apps.FOUserAgent;
@@ -135,10 +137,9 @@ public class FoToPdfTransformerTests {
   }
 
   @CartesianTest
-  void testSimpleArticleRaw(
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Simple/Simple article.fo"));
+  void testSimpleArticleRaw(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("Simple/Simple article.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -148,10 +149,9 @@ public class FoToPdfTransformerTests {
   }
 
   @CartesianTest
-  void testSimpleArticleStyled(
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Simple/Simple article styled.fo"));
+  void testSimpleArticleStyled(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("Simple/Simple article styled.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -172,24 +172,25 @@ public class FoToPdfTransformerTests {
   }
 
   @CartesianTest
-  void testArticleWithSmallImage(
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory()).bytesToBytes(
-        Resourcer.byteSource("Article with small image styled.fo"));
+  void testArticleWithSmallImage(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+    final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
+        .bytesToBytes(Resourcer.byteSource("With image/Article with small image.fo"));
     assertTrue(pdf.length >= 10);
+    // Files.write(Path.of("out.pdf"), pdf);
+
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
       assertEquals(1, numberOfPages);
-      assertEquals("My Article", document.getDocumentInformation().getTitle());
+      assertNull(document.getDocumentInformation().getTitle());
     }
   }
 
   @CartesianTest
-  void testArticleWithNonExistingImageThrows(
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  void testArticleWithNonExistingImageThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf)
+      throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(Resourcer
-        .byteSource("Article with non existing image styled.fo")));
+    final XmlException e = assertThrows(XmlException.class, () -> t
+        .bytesToBytes(Resourcer.byteSource("With image/Article with non existing image.fo")));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertEquals(FileNotFoundException.class, cause.getCause().getClass());
@@ -201,12 +202,10 @@ public class FoToPdfTransformerTests {
    * overflow (including without my custom styling). I didn’t investigate further.
    */
   @CartesianTest
-  void testHowtoThrows(
-      
-      @CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
+  void testHowtoThrows(@CartesianTest.Enum KnownFactory factoryFoToPdf) throws Exception {
     final XmlToBytesTransformer t = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory());
-    final XmlException e = assertThrows(XmlException.class, () -> t.bytesToBytes(
-        Resourcer.byteSource("Howto shortened styled.fo")));
+    final XmlException e = assertThrows(XmlException.class,
+        () -> t.bytesToBytes(Resourcer.byteSource("Howto/Howto shortened.fo")));
     final Throwable cause = e.getCause();
     assertEquals(TransformerException.class, cause.getClass());
     assertTrue(cause.getMessage().contains("LineBreaking"));
@@ -216,7 +215,7 @@ public class FoToPdfTransformerTests {
   @EnumSource
   void testOverlyLongLineHyphenates(KnownFactory factoryFoToPdf) throws Exception {
     final byte[] pdf = FoToPdfTransformer.usingFactory(factoryFoToPdf.factory())
-        .bytesToBytes(Resourcer.byteSource("Overly long line.fo"));
+        .bytesToBytes(Resourcer.byteSource("Various Fo/Overly long line.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -230,8 +229,8 @@ public class FoToPdfTransformerTests {
 
   @Test
   void testArticleWithPdf() throws Exception {
-    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory())
-        .bytesToBytes(Resourcer.byteSource("Include PDF.fo"));
+    final byte[] pdf = FoToPdfTransformer.usingFactory(KnownFactory.XALAN.factory()).withDefaultConfig(Path.of("").toUri())
+        .bytesToBytes(Resourcer.byteSource("Various Fo/Include PDF.fo"));
     assertTrue(pdf.length >= 10);
     try (PDDocument document = Loader.loadPDF(pdf)) {
       final int numberOfPages = document.getNumberOfPages();
@@ -240,5 +239,8 @@ public class FoToPdfTransformerTests {
       final String text = stripper.getText(document);
       assertTrue(text.contains("Hello"));
     }
+
+    ByteSource expected = Resourcer.byteSource("Various Fo/Include PDF.pdf");
+    assertTrue(PdfCompar.compare(expected, ByteSource.wrap(pdf)).isEqual());
   }
 }

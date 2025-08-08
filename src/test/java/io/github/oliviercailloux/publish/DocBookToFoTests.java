@@ -210,6 +210,27 @@ class DocBookToFoTests {
 
   @ParameterizedTest
   @EnumSource(names = {"XALAN", "SAXON"})
+  void testArticleWithSmallImageToFo(KnownFactory factory) throws Exception {
+    URI stylesheet = DocBookResources.XSLT_1_FO_URI;
+    ImmutableMap<XmlName, String> properties = ImmutableMap.of();
+    final CharSource docBook = charSource("With image/Article with small image.dbk");
+    String name = "With image/Article with small image.fo";
+
+    TransformerFactory underlying = factory.factory();
+    underlying.setURIResolver(DocBookResources.RESOLVER);
+    final XmlTransformerFactory transformerFactory = XmlTransformerFactory.usingFactory(underlying);
+
+    final Document foDom = transformerFactory
+        .usingStylesheet(stylesheet, properties, OutputProperties.noIndent()).charsToDom(docBook);
+    String fo = DomHelper.domHelper().toString(foDom);
+    assertTrue(fo.contains("Sample"));
+    assertTrue(
+        fo.contains("https://github.com/Dauphine-MIDO/M1-alternance/raw/main/DauphineBleu.png"));
+    assertEqualsApartFromIds(transformerFactory, name, foDom);
+  }
+
+  @ParameterizedTest
+  @EnumSource(names = {"XALAN", "SAXON"})
   void testArticleWithNonExistingImageToFo(KnownFactory factory) throws Exception {
     URI stylesheet = DocBookResources.XSLT_1_FO_URI;
     ImmutableMap<XmlName, String> properties = ImmutableMap.of();

@@ -7,7 +7,7 @@
   </fo:layout-master-set>
   <fo:page-sequence master-reference="A4">
     <fo:flow flow-name="xsl-region-body">
-      <fo:block>Hello, world!<fo:external-graphic src="url(Hello world A6.pdf)" /></fo:block>
+      <fo:block>Hello, world!<fo:external-graphic src="url(src/test/resources/io/github/oliviercailloux/publish/Hello world/Hello world A6.pdf)" /></fo:block>
     </fo:flow>
   </fo:page-sequence>
 </fo:root>
